@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Environment variables (secrets - never commit)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime
+uploads/
+*.pid
+*.seed
+*.pid.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Optional: keep an example env file (create .env.example with placeholder values if you want)
+# !.env.example

@@ -1,0 +1,186 @@
+/* ─── Profile Header ──────────────────────────────────────────── */
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    background: #fff;
+    border-radius: 20px;
+    padding: 2.25rem 2.5rem;
+    margin-bottom: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 24px rgba(0,0,0,0.04);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #2563eb 0%, #7c3aed 50%, #0ea5e9 100%);
+  }
+  
+  /* Avatar */
+  .profile-header__avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  
+  .profile-header__avatar {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .profile-header__avatar--initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: #fff;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+  
+  .profile-header__avatar-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    background: linear-gradient(135deg, #2563eb, #7c3aed) border-box;
+    mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+  }
+  
+  /* Info */
+  .profile-header__info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .profile-header__top-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.375rem;
+  }
+  
+  .profile-header__name {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.875rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+    margin: 0;
+  }
+  
+  .profile-header__badge {
+    padding: 0.3rem 0.875rem;
+    border-radius: 999px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  
+  .profile-header__email {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9375rem;
+    color: #64748b;
+    margin: 0 0 0.875rem;
+  }
+  
+  .profile-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+  }
+  
+  .profile-header__meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8125rem;
+    color: #64748b;
+    font-weight: 500;
+  }
+  
+  .profile-header__meta-item svg {
+    color: #94a3b8;
+  }
+  
+  .profile-header__verified {
+    color: #16a34a !important;
+  }
+  
+  .profile-header__verified svg {
+    color: #16a34a !important;
+    background: #dcfce7;
+    border-radius: 50%;
+    padding: 1px;
+    width: 17px !important;
+    height: 17px !important;
+  }
+  
+  /* Edit Button */
+  .profile-header__edit-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #fff;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+  
+  .profile-header__edit-btn:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+    background: #eff6ff;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .profile-header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 2rem 1.5rem;
+      gap: 1.25rem;
+    }
+  
+    .profile-header__name {
+      font-size: 1.5rem;
+    }
+  
+    .profile-header__edit-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  
+    .profile-header__avatar {
+      width: 72px;
+      height: 72px;
+    }
+  }

@@ -1,0 +1,419 @@
+/* Navbar Styles */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(37, 99, 235, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navbar--scrolled {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-bottom-color: rgba(37, 99, 235, 0.12);
+}
+
+.navbar__container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+/* Logo Section */
+.navbar__logo {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.navbar__logo:hover {
+  transform: scale(1.02);
+}
+
+.navbar__logo-icon {
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.navbar__logo:hover .navbar__logo-icon {
+  transform: rotate(-5deg);
+}
+
+.navbar__logo-text {
+  font-size: 1.375rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: #1e293b;
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.navbar__logo-text--bold {
+  font-weight: 700;
+}
+
+/* Actions Section */
+.navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Profile Button */
+.navbar__profile-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0; /* light grey border */
+  background-color: #ffffff;  /* white background */
+  cursor: pointer;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.875rem;
+  color: #0f172a;
+  transition: all 0.2s ease;
+}
+
+.navbar__profile-button:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5f5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+}
+
+.navbar__profile-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.navbar__profile-name {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Button Styles */
+.navbar__button {
+  min-height: 40px;
+  height: 40px;
+  padding: 0 1.25rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.navbar__button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+
+.navbar__button:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Secondary Button (Pay Rent) */
+.navbar__button--secondary {
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.navbar__button--secondary:hover {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.navbar__button--secondary svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Primary Button (For Property owners) */
+.navbar__button--primary {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.navbar__button--primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+}
+
+.navbar__button--primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+/* Outline Buttons (Sign up, Log in) */
+.navbar__button--outline {
+  background: transparent;
+  color: #334155;
+  border: none;
+  border-right: 1.5px solid #e2e8f0;
+  border-radius: 0;
+}
+
+.navbar__button--outline:hover {
+  background: #f8fafc;
+  color: #1e293b;
+  transform: translateY(-1px);
+}
+
+/* Menu toggle wrapper - the actual click target on mobile */
+.navbar__menu-toggle-wrap {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin: -0.5rem;
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.navbar__menu-toggle-wrap:hover {
+  background: #f1f5f9;
+}
+
+/* Menu Toggle Button - hidden on desktop, shown on mobile (visual only, wrapper handles click) */
+.navbar__menu-toggle {
+  display: none;
+  background: transparent;
+  color: #334155;
+  border: none;
+  border-radius: 8px;
+  padding: 0 1rem;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875rem;
+  transition: background 0.2s, color 0.2s;
+  pointer-events: none; /* let wrapper receive clicks */
+}
+
+.navbar__menu-toggle:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.navbar__menu-toggle--open {
+  background: #f1f5f9;
+  color: #2563eb;
+}
+
+.navbar__menu-toggle svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.navbar__menu-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Mobile dropdown - when rendered inside navbar (legacy, kept for reference) */
+.navbar__dropdown {
+  display: none;
+}
+
+/* Mobile dropdown PORTAL - rendered at document.body, so it never blocks the menu button */
+.navbar__dropdown-portal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+.navbar__dropdown-portal .navbar__dropdown-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.navbar__dropdown-portal .navbar__dropdown-panel {
+  position: absolute;
+  top: 60px; /* below navbar height on mobile */
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  padding: 0.5rem 0;
+  max-height: 70vh;
+  overflow-y: auto;
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  animation: navbar-dropdown-in 0.2s ease;
+}
+
+@keyframes navbar-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.navbar__dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  border: none;
+  background: none;
+  color: #334155;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.navbar__dropdown-item:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.navbar__dropdown-item--profile {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 0.25rem;
+  padding-top: 1rem;
+}
+
+.navbar__dropdown-item--logout {
+  color: #dc2626;
+}
+
+.navbar__dropdown-item--logout:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* Responsive: desktop first - action items visible, menu hidden */
+@media (max-width: 768px) {
+  .navbar__container {
+    position: relative;
+    padding: 0 1rem;
+    height: 60px;
+  }
+
+  .navbar__logo-text {
+    font-size: 1.25rem;
+  }
+
+  /* On mobile: hide inline actions, show menu toggle */
+  .navbar__action-item {
+    display: none !important;
+  }
+
+  .navbar__actions {
+    position: relative;
+    z-index: 1001; /* above dropdown so menu button is always clickable */
+  }
+
+  .navbar__menu-toggle-wrap {
+    display: inline-flex;
+    min-width: 48px;
+    min-height: 48px;
+  }
+
+  .navbar__menu-toggle {
+    display: inline-flex;
+    pointer-events: none;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .navbar__dropdown {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar__container {
+    padding: 0 0.75rem;
+  }
+
+  .navbar__logo-text {
+    font-size: 1.125rem;
+  }
+
+  .navbar__menu-text {
+    display: none;
+  }
+
+  .navbar__menu-toggle {
+    padding: 0 0.75rem;
+  }
+}
+
+a {
+  text-decoration: none;
+}
+
+/* Font Import */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Inter:wght@400;500;600&display=swap');

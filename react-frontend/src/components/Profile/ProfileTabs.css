@@ -1,0 +1,85 @@
+/* ─── Tabs ────────────────────────────────────────────────────── */
+.profile-tabs {
+    margin-top: 1.75rem;
+  }
+  
+  .profile-tabs__list {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0;
+  }
+  
+  .profile-tabs__list::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .profile-tabs__tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  
+  .profile-tabs__tab:hover {
+    color: #1e293b;
+    background: #f8fafc;
+    border-radius: 10px 10px 0 0;
+  }
+  
+  .profile-tabs__tab--active {
+    color: #2563eb;
+    font-weight: 700;
+    border-bottom-color: #2563eb;
+  }
+  
+  .profile-tabs__tab--active:hover {
+    background: transparent;
+  }
+  
+  .profile-tabs__icon {
+    font-size: 1.125rem;
+    line-height: 1;
+  }
+  
+  .profile-tabs__count {
+    background: #2563eb;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    min-width: 20px;
+    text-align: center;
+  }
+  
+  .profile-tabs__divider {
+    height: 1px;
+    background: #e2e8f0;
+    margin-top: -1px;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .profile-tabs__tab {
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+    }
+  
+    .profile-tabs__icon {
+      font-size: 1rem;
+    }
+  }

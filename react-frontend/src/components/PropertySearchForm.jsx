@@ -1,0 +1,234 @@
+import React, { useState } from 'react';
+import './PropertySearchForm.css';
+import { useNavigate } from 'react-router-dom';
+
+const PropertySearchForm = () => {
+  const navigate = useNavigate();
+  const [searchType, setSearchType] = useState('rent');
+  const [priceRange, setPriceRange] = useState(50000);
+  const [filters, setFilters] = useState({
+    location: '',
+    bhk: '',
+    propertyType: '',
+    furnishing: ''
+  });
+
+  const handleFilterChange = (name, value) => {
+    setFilters(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handlePriceChange = (e) => {
+    setPriceRange(parseInt(e.target.value));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    // Backend uses 'sell' for buy
+    params.set('property_for', searchType === 'buy' ? 'sell' : 'rent');
+    params.set('max_price', String(priceRange));
+    if (filters.location?.trim()) params.set('location', filters.location.trim());
+    if (filters.bhk) params.set('bhk_type', filters.bhk);
+    if (filters.propertyType) params.set('property_type', filters.propertyType);
+    if (filters.furnishing) params.set('furnishing', filters.furnishing);
+    navigate(`/properties?${params.toString()}`);
+  };
+
+  const formatPrice = (price) => {
+    if (price >= 10000000) {
+      return `₹${(price / 10000000).toFixed(1)} Cr`;
+    } else if (price >= 100000) {
+      return `₹${(price / 100000).toFixed(1)} L`;
+    } else if (price >= 1000) {
+      return `₹${(price / 1000).toFixed(0)} K`;
+    }
+    return `₹${price}`;
+  };
+
+  const getMaxPrice = () => {
+    return searchType === 'rent' ? 100000 : 20000000;
+  };
+
+  const getPriceStep = () => {
+    return searchType === 'rent' ? 1000 : 100000;
+  };
+
+  return (
+    <div className="search-form-wrapper">
+      <div className="search-form-container">
+        <div className="search-form-header">
+          <h1 className="search-form-title">Find Your Perfect Home</h1>
+          <p className="search-form-subtitle">
+            Search from thousands of properties in your area
+          </p>
+        </div>
+
+        {/* Search Type Toggle */}
+        <div className="search-type-toggle">
+          <button
+            type="button"
+            className={`toggle-btn ${searchType === 'rent' ? 'active' : ''}`}
+            onClick={() => setSearchType('rent')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            Rent
+          </button>
+          <button
+            type="button"
+            className={`toggle-btn ${searchType === 'buy' ? 'active' : ''}`}
+            onClick={() => setSearchType('buy')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+              <path d="M9 22V12h6v10"/>
+            </svg>
+            Buy
+          </button>
+        </div>
+
+        {/* Main Search Form */}
+        <form className="search-form" onSubmit={handleSubmit}>
+          <div className="form-grid">
+            {/* Location Input */}
+            <div className="form-group form-group--location">
+              <label htmlFor="location" className="form-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                Location
+              </label>
+              <input
+                type="text"
+                id="location"
+                className="form-input"
+                placeholder="Enter locality, area or landmark"
+                value={filters.location}
+                onChange={(e) => handleFilterChange('location', e.target.value)}
+              />
+            </div>
+
+            {/* BHK Type Dropdown */}
+            <div className="form-group">
+              <label htmlFor="bhk" className="form-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="7" height="7"/>
+                  <rect x="14" y="3" width="7" height="7"/>
+                  <rect x="14" y="14" width="7" height="7"/>
+                  <rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                BHK Type
+              </label>
+              <select
+                id="bhk"
+                className="form-select"
+                value={filters.bhk}
+                onChange={(e) => handleFilterChange('bhk', e.target.value)}
+              >
+                <option value="">Select BHK</option>
+                <option value="1">1 BHK</option>
+                <option value="1.5">1.5 BHK</option>
+                <option value="2">2 BHK</option>
+                <option value="2.5">2.5 BHK</option>
+                <option value="3">3 BHK</option>
+                <option value="3.5">3.5 BHK</option>
+                <option value="4">4 BHK</option>
+                <option value="4+">4+ BHK</option>
+              </select>
+            </div>
+
+            {/* Property Type Dropdown */}
+            <div className="form-group">
+              <label htmlFor="propertyType" className="form-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                </svg>
+                Property Type
+              </label>
+              <select
+                id="propertyType"
+                className="form-select"
+                value={filters.propertyType}
+                onChange={(e) => handleFilterChange('propertyType', e.target.value)}
+              >
+                <option value="">All Types</option>
+                <option value="apartment">Apartment</option>
+                <option value="independent-house">Independent House</option>
+                <option value="villa">Villa</option>
+                <option value="builder-floor">Builder Floor</option>
+                <option value="studio">Studio Apartment</option>
+                <option value="penthouse">Penthouse</option>
+              </select>
+            </div>
+
+            {/* Furnishing Type */}
+            <div className="form-group">
+              <label htmlFor="furnishing" className="form-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 9v11a2 2 0 01-2 2H6a2 2 0 01-2-2V9"/>
+                  <path d="M9 22V12h6v10M2 10.6L12 2l10 8.6"/>
+                </svg>
+                Furnishing
+              </label>
+              <select
+                id="furnishing"
+                className="form-select"
+                value={filters.furnishing}
+                onChange={(e) => handleFilterChange('furnishing', e.target.value)}
+              >
+                <option value="">Any</option>
+                <option value="fully-furnished">Fully Furnished</option>
+                <option value="semi-furnished">Semi Furnished</option>
+                <option value="unfurnished">Unfurnished</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Price Range Slider */}
+          <div className="price-range-section">
+            <div className="price-range-header">
+              <label className="form-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="1" x2="12" y2="23"/>
+                  <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                </svg>
+                Price Range
+              </label>
+              <span className="price-value">
+                Up to {formatPrice(priceRange)}
+                {searchType === 'rent' && '/month'}
+              </span>
+            </div>
+            <input
+              type="range"
+              className="price-slider"
+              min="0"
+              max={getMaxPrice()}
+              step={getPriceStep()}
+              value={priceRange}
+              onChange={handlePriceChange}
+            />
+            <div className="price-range-labels">
+              <span>₹0</span>
+              <span>{formatPrice(getMaxPrice())}</span>
+            </div>
+          </div>
+
+          {/* Search Button */}
+          <button type="submit" className="search-submit-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="M21 21l-4.35-4.35"/>
+            </svg>
+            Search Properties
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default PropertySearchForm;
