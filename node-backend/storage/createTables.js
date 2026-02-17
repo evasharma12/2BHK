@@ -1,11 +1,13 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mysql = require('mysql2/promise');
 
-// Database configuration
+// Use env vars so the same script works for local and production (e.g. Render + PlanetScale)
 const dbConfig = {
-  host: 'localhost',
-  user: 'root',
-  password: '1234567890',
-  database: '2bhk_db'
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || '2bhk_db',
+  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 3306,
 };
 
 // Create database schema

@@ -332,6 +332,11 @@ const Property = {
       });
       if (row) affectedRows = 1;
     }
+
+    // Only modify images/amenities after ownership is verified (affectedRows === 1)
+    if (affectedRows !== 1) {
+      return affectedRows;
+    }
     if (updateData.image_urls !== undefined && Array.isArray(updateData.image_urls)) {
       await this.deleteImagesForProperty(propertyId);
       if (updateData.image_urls.length > 0) {

@@ -1,12 +1,13 @@
 // dbConnection.js
 const mysql = require('mysql2');
 
-// Create a connection to the database
+// Use env vars in production (e.g. Render + PlanetScale/Railway); fallback for local dev
 const connection = mysql.createConnection({
-  host: 'localhost',      // Your MySQL host
-  user: 'root',           // Your MySQL username
-  password: '1234567890', // Your MySQL password
-  database: '2bhk_db'     // Your database name
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || '2bhk_db',
+  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 3306,
 });
 
 // Connect to the database
