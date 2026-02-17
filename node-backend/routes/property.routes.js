@@ -17,6 +17,9 @@ router.get('/:id', PropertyController.getPropertyById);
 // Delete own property (auth required)
 router.delete('/:id', authMiddleware, PropertyController.deleteProperty);
 
+// Update own property (auth required)
+router.put('/:id', authMiddleware, PropertyController.updateProperty);
+
 // Upload property images (auth first, then multer; multer errors return JSON)
 router.post('/upload', authMiddleware, (req, res, next) => {
   upload.array('images', 10)(req, res, (err) => {

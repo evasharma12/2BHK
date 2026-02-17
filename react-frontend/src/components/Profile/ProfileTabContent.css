@@ -129,6 +129,23 @@
     transform: translateX(4px);
   }
 
+  .listed-mini-card__edit-btn {
+    flex-shrink: 0;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #1d4ed8;
+    background: #eff6ff;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .listed-mini-card__edit-btn:hover {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
   .listed-mini-card__delete-btn {
     flex-shrink: 0;
     display: flex;

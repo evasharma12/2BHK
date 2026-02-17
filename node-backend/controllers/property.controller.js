@@ -276,6 +276,94 @@ class PropertyController {
       });
     }
   }
+
+  static async updateProperty(req, res) {
+    try {
+      const propertyId = req.params.id;
+      const userId = req.user?.user_id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
+      }
+      const body = req.body;
+      const requiredFields = [
+        'property_for',
+        'property_type',
+        'bhk_type',
+        'address',
+        'locality',
+        'city',
+        'pincode',
+        'built_up_area',
+        'carpet_area',
+        'total_floors',
+        'floor_number',
+        'property_age',
+        'furnishing',
+        'expected_price',
+      ];
+      for (const field of requiredFields) {
+        if (!body[field]) {
+          return res.status(400).json({
+            success: false,
+            message: `Missing required field: ${field}`,
+          });
+        }
+      }
+      const updateData = {
+        property_for: body.property_for,
+        property_type: body.property_type,
+        bhk_type: body.bhk_type,
+        address: body.address,
+        locality: body.locality,
+        city: body.city,
+        state: body.state || null,
+        pincode: body.pincode,
+        built_up_area: body.built_up_area,
+        carpet_area: body.carpet_area,
+        total_floors: body.total_floors,
+        floor_number: body.floor_number,
+        bedrooms: body.bedrooms || null,
+        bathrooms: body.bathrooms || null,
+        balconies: body.balconies != null ? body.balconies : 0,
+        property_age: body.property_age,
+        furnishing: body.furnishing,
+        facing: body.facing || null,
+        expected_price: body.expected_price,
+        price_negotiable: body.price_negotiable || false,
+        maintenance_charges: body.maintenance_charges || null,
+        security_deposit: body.security_deposit || null,
+        description: body.description || null,
+        available_from: body.available_from || null,
+      };
+      if (body.amenities && Array.isArray(body.amenities)) {
+        updateData.amenities = body.amenities;
+      }
+      if (body.image_urls && Array.isArray(body.image_urls)) {
+        updateData.image_urls = body.image_urls;
+      }
+      const affectedRows = await Property.update(propertyId, userId, updateData);
+      if (affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Property not found or you do not have permission to edit it',
+        });
+      }
+      return res.json({
+        success: true,
+        message: 'Property updated successfully',
+        data: { property_id: propertyId },
+      });
+    } catch (error) {
+      console.error('Update property error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update property',
+      });
+    }
+  }
 }
 
 module.exports = PropertyController;

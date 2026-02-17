@@ -9,50 +9,40 @@ import PropertyPricing from './PropertyPricing';
 import OwnerContact from './OwnerContact';
 import './PostProperty.css';
 
-const PostProperty = () => {
+const defaultFormData = {
+  propertyFor: 'rent',
+  propertyType: '',
+  bhk: '',
+  address: '',
+  locality: '',
+  city: '',
+  pincode: '',
+  builtUpArea: '',
+  carpetArea: '',
+  totalFloors: '',
+  floorNumber: '',
+  propertyAge: '',
+  furnishing: '',
+  facing: '',
+  amenities: [],
+  expectedPrice: '',
+  priceNegotiable: false,
+  maintenanceCharges: '',
+  securityDeposit: '',
+  images: [],
+  description: '',
+  availableFrom: '',
+};
+
+const PostProperty = ({ propertyId = null, initialFormData = null }) => {
   const navigate = useNavigate();
+  const isEditMode = Boolean(propertyId);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({
-    // Basic Info
-    propertyFor: 'rent',
-    propertyType: '',
-    bhk: '',
-    
-    // Location
-    address: '',
-    locality: '',
-    city: '',
-    pincode: '',
-    
-    // Details
-    builtUpArea: '',
-    carpetArea: '',
-    totalFloors: '',
-    floorNumber: '',
-    propertyAge: '',
-    furnishing: '',
-    facing: '',
-    
-    // Amenities
-    amenities: [],
-    
-    // Pricing
-    expectedPrice: '',
-    priceNegotiable: false,
-    maintenanceCharges: '',
-    securityDeposit: '',
-    
-    // Images
-    images: [],
-    
-    // Description
-    description: '',
-    
-    // Availability (owner contact comes from profile)
-    availableFrom: ''
-  });
+  const [formData, setFormData] = useState(() =>
+    initialFormData ? { ...defaultFormData, ...initialFormData } : { ...defaultFormData }
+  );
 
   const totalSteps = 6;
 
@@ -93,10 +83,14 @@ const PostProperty = () => {
 
       let imageUrls = [];
       if (formData.images && formData.images.length > 0) {
+        const existingUrls = formData.images.filter((img) => img.url).map((img) => img.url);
         const files = formData.images.map((img) => img.file).filter(Boolean);
         if (files.length > 0) {
           const uploadRes = await api.uploadPropertyImages(files);
-          imageUrls = uploadRes.data?.urls || [];
+          const newUrls = uploadRes.data?.urls || [];
+          imageUrls = [...existingUrls, ...newUrls];
+        } else {
+          imageUrls = existingUrls;
         }
       }
 
@@ -126,13 +120,18 @@ const PostProperty = () => {
         image_urls: imageUrls,
       };
 
-      await api.createProperty(payload);
-
-      alert('Property posted successfully!');
-      navigate('/properties');
+      if (isEditMode) {
+        await api.updateProperty(propertyId, payload);
+        alert('Property updated successfully!');
+        navigate(`/properties/${propertyId}`);
+      } else {
+        await api.createProperty(payload);
+        alert('Property posted successfully!');
+        navigate('/properties');
+      }
     } catch (err) {
-      console.error('Error posting property:', err);
-      setError(err.message || 'Failed to post property. Please try again.');
+      console.error(isEditMode ? 'Error updating property:' : 'Error posting property:', err);
+      setError(err.message || (isEditMode ? 'Failed to update property. Please try again.' : 'Failed to post property. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -205,9 +204,11 @@ const PostProperty = () => {
       <div className="post-property-container">
         {/* Header */}
         <div className="post-property-header">
-          <h1 className="post-property-title">Post Your Property</h1>
+          <h1 className="post-property-title">{isEditMode ? 'Edit Property' : 'Post Your Property'}</h1>
           <p className="post-property-subtitle">
-            Fill in the details to list your property for {formData.propertyFor === 'rent' ? 'rent' : 'sale'}
+            {isEditMode
+              ? 'Update the details of your property.'
+              : `Fill in the details to list your property for ${formData.propertyFor === 'rent' ? 'rent' : 'sale'}`}
           </p>
         </div>
 
@@ -285,14 +286,14 @@ const PostProperty = () => {
                 {isSubmitting ? (
                   <>
                     <span className="nav-btn-spinner" />
-                    Posting...
+                    {isEditMode ? 'Updating...' : 'Posting...'}
                   </>
                 ) : (
                   <>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    Post Property
+                    {isEditMode ? 'Update Property' : 'Post Property'}
                   </>
                 )}
               </button>

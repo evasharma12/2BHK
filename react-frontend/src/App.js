@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import PostPropertyPage from './pages/PostPropertyPage';
 import PropertiesListPage from './pages/PropertiesListPage';
 import PropertyDetailPage from './pages/PropertyDetailPage';
+import EditPropertyPage from './pages/EditPropertyPage';
 import ProfilePage from './pages/ProfilePage';
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_AUTH_CLIENT_ID;
@@ -25,6 +26,7 @@ function App() {
             <Route path="/post-property" element={<PostPropertyPage />} />
             <Route path="/properties" element={<PropertiesListPage />} />
             <Route path="/properties/:id" element={<PropertyDetailPage />} />
+            <Route path="/properties/:id/edit" element={<EditPropertyPage />} />
           </Routes>
         </div>
       </Router>

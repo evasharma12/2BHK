@@ -117,6 +117,10 @@ const ListedPropertyMiniCard = ({ property, onDelete }) => {
     }
   };
 
+  const handleEditClick = (e) => {
+    e.stopPropagation();
+  };
+
   return (
     <Link to={`/properties/${property.property_id}`} className="listed-mini-card">
       <span className="listed-mini-card__badge">
@@ -132,6 +136,15 @@ const ListedPropertyMiniCard = ({ property, onDelete }) => {
         </p>
       </div>
       <span className="listed-mini-card__arrow">→</span>
+      <Link
+        to={`/properties/${property.property_id}/edit`}
+        className="listed-mini-card__edit-btn"
+        onClick={handleEditClick}
+        title="Edit listing"
+        aria-label="Edit listing"
+      >
+        Edit
+      </Link>
       <button
         type="button"
         className="listed-mini-card__delete-btn"

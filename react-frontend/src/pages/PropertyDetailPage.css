@@ -103,6 +103,27 @@
   align-items: flex-end;
 }
 
+/* Edit property button (owner only) */
+.edit-property-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e40af;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.edit-property-btn:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 /* Save property heart button */
 .save-property-btn {
   position: relative;

@@ -275,6 +275,78 @@ const Property = {
     }
   },
 
+  async deleteImagesForProperty(propertyId) {
+    return new Promise((resolve, reject) => {
+      db.query('DELETE FROM property_images WHERE property_id = ?', [propertyId], (err) =>
+        err ? reject(err) : resolve()
+      );
+    });
+  },
+
+  async deleteAmenitiesForProperty(propertyId) {
+    return new Promise((resolve, reject) => {
+      db.query('DELETE FROM property_amenities WHERE property_id = ?', [propertyId], (err) =>
+        err ? reject(err) : resolve()
+      );
+    });
+  },
+
+  async update(propertyId, ownerId, updateData) {
+    const allowed = [
+      'property_for', 'property_type', 'bhk_type', 'address', 'locality', 'city', 'state', 'pincode',
+      'built_up_area', 'carpet_area', 'total_floors', 'floor_number', 'bedrooms', 'bathrooms', 'balconies',
+      'property_age', 'furnishing', 'facing', 'expected_price', 'price_negotiable', 'maintenance_charges',
+      'security_deposit', 'description', 'available_from',
+    ];
+    const setParts = [];
+    const values = [];
+    for (const key of allowed) {
+      if (updateData[key] !== undefined) {
+        setParts.push(`${key} = ?`);
+        let val = updateData[key];
+        if (key === 'price_negotiable') val = val ? 1 : 0;
+        if (key === 'balconies' && (val === undefined || val === null)) val = 0;
+        values.push(val);
+      }
+    }
+    if (setParts.length === 0 && !updateData.image_urls && !updateData.amenities) {
+      return 0;
+    }
+    let affectedRows = 0;
+    if (setParts.length > 0) {
+      const result = await new Promise((resolve, reject) => {
+        db.query(
+          `UPDATE properties SET ${setParts.join(', ')} WHERE property_id = ? AND owner_id = ?`,
+          [...values, propertyId, ownerId],
+          (err, result) => (err ? reject(err) : resolve(result))
+        );
+      });
+      affectedRows = result.affectedRows;
+    } else {
+      const row = await new Promise((resolve, reject) => {
+        db.query(
+          'SELECT 1 FROM properties WHERE property_id = ? AND owner_id = ? LIMIT 1',
+          [propertyId, ownerId],
+          (err, rows) => (err ? reject(err) : resolve(rows && rows.length ? 1 : 0))
+        );
+      });
+      if (row) affectedRows = 1;
+    }
+    if (updateData.image_urls !== undefined && Array.isArray(updateData.image_urls)) {
+      await this.deleteImagesForProperty(propertyId);
+      if (updateData.image_urls.length > 0) {
+        await this.addImages(propertyId, updateData.image_urls);
+      }
+    }
+    if (updateData.amenities !== undefined && Array.isArray(updateData.amenities)) {
+      await this.deleteAmenitiesForProperty(propertyId);
+      if (updateData.amenities.length > 0) {
+        await this.addAmenities(propertyId, updateData.amenities);
+      }
+    }
+    return affectedRows;
+  },
+
   // Get single property by id with images, amenities, and owner info
   async findById(propertyId) {
     const property = await new Promise((resolve, reject) => {
