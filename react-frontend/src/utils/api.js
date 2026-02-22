@@ -76,6 +76,8 @@ export const api = {
     }
     const data = await parseJsonResponse(response);
     if (!response.ok || !data.success) {
+      // Log so you can see the real error in browser DevTools → Console
+      console.error('Google auth failed:', response.status, data);
       throw new Error(data.message || 'Google authentication failed');
     }
     return data;
