@@ -5,6 +5,9 @@ import { api } from '../utils/api';
 import PropertyFilters from '../components/PropertyFilters';
 import './PropertiesListPage.css';
 
+// Map UI sort to backend sort param (stable reference for useMemo deps)
+const SORT_TO_BACKEND = { newest: 'newest', 'price-low': 'price_asc', 'price-high': 'price_desc', 'area-high': 'area_desc' };
+
 const PropertiesListPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [properties, setProperties] = useState([]);
@@ -28,9 +31,6 @@ const PropertiesListPage = () => {
     };
   }, [filtersOpen]);
 
-  // Map UI sort to backend sort param
-  const sortToBackend = { newest: 'newest', 'price-low': 'price_asc', 'price-high': 'price_desc', 'area-high': 'area_desc' };
-
   // Derive API params and sidebar filter state from URL
   const apiParams = useMemo(() => {
     const sort = searchParams.get('sort') || 'newest';
@@ -42,7 +42,7 @@ const PropertiesListPage = () => {
       min_price: searchParams.get('min_price') || undefined,
       max_price: searchParams.get('max_price') || undefined,
       location: searchParams.get('location') || undefined,
-      sort: sortToBackend[sort] || sort,
+      sort: SORT_TO_BACKEND[sort] || sort,
     };
   }, [searchParams]);
 

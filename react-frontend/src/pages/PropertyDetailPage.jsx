@@ -17,6 +17,7 @@ const PropertyDetailPage = () => {
 
   useEffect(() => {
     fetchProperty(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch on id change only
   }, [id]);
 
   useEffect(() => {

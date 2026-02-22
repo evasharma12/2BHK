@@ -41,7 +41,7 @@ const ImageGallery = ({ images }) => {
         <div className="gallery-main">
           <img
             src={images[currentIndex]}
-            alt={`Property image ${currentIndex + 1}`}
+            alt={`Property view ${currentIndex + 1}`}
             className="main-image"
             onClick={toggleFullscreen}
           />
@@ -99,7 +99,7 @@ const ImageGallery = ({ images }) => {
           </button>
           <img
             src={images[currentIndex]}
-            alt={`Property image ${currentIndex + 1}`}
+            alt={`Property view ${currentIndex + 1}`}
             onClick={(e) => e.stopPropagation()}
           />
           {images.length > 1 && (

@@ -10,6 +10,7 @@ const SavedProperties = ({ userId }) => {
 
   useEffect(() => {
     fetchSavedProperties();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on userId change only
   }, [userId]);
 
   const mapSavedToCard = (p) => ({
@@ -244,6 +245,7 @@ export const MyInquiries = ({ userId, userType }) => {
 
   useEffect(() => {
     fetchInquiries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on userId change only
   }, [userId]);
 
   const fetchInquiries = async () => {
@@ -307,6 +309,7 @@ export const RecentlyViewed = ({ userId }) => {
 
   useEffect(() => {
     fetchRecentlyViewed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on userId change only
   }, [userId]);
 
   const fetchRecentlyViewed = async () => {

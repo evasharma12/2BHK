@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { api } from '../utils/api';
 import './LoginPage.css';
 
 const LoginPage = ({ defaultMode = 'login' }) => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/';
   const [isLoading, setIsLoading] = useState(false);
