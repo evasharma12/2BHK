@@ -45,6 +45,15 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
+// Normalize trailing slashes (Express does not match /path and /path/ as the same)
+app.use((req, res, next) => {
+  if (req.path.endsWith('/') && req.path.length > 1) {
+    const query = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
+    req.url = req.path.slice(0, -1) + query;
+  }
+  next();
+});
+
 // ============================================
 // ROUTES
 // ============================================
@@ -85,6 +94,7 @@ app.use('/api/amenities', amenityRoutes);
 
 // 404 Handler
 app.use((req, res) => {
+  console.warn('404 Route not found:', req.method, req.originalUrl);
   res.status(404).json({
     success: false,
     message: 'Route not found'
