@@ -1,17 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './PropertySearchForm.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { api } from '../utils/api';
 
 const PropertySearchForm = () => {
   const navigate = useNavigate();
   const [searchType, setSearchType] = useState('rent');
   const [priceRange, setPriceRange] = useState(50000);
+  const [mobileFormOpen, setMobileFormOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [filters, setFilters] = useState({
     location: '',
     bhk: '',
     propertyType: '',
     furnishing: ''
   });
+
+  useEffect(() => {
+    setCurrentUser(api.getUser());
+  }, []);
 
   const handleFilterChange = (name, value) => {
     setFilters(prev => ({ ...prev, [name]: value }));
@@ -54,7 +61,7 @@ const PropertySearchForm = () => {
   };
 
   return (
-    <div className="search-form-wrapper">
+    <div className={`search-form-wrapper ${mobileFormOpen ? 'mobile-form-open' : ''}`}>
       <div className="search-form-container">
         <div className="search-form-header">
           <h1 className="search-form-title">Find Your Perfect Home</h1>
@@ -89,7 +96,23 @@ const PropertySearchForm = () => {
           </button>
         </div>
 
-        {/* Main Search Form */}
+        {/* Mobile only: compact search bar - tap to open full form */}
+        <div
+          className="search-form-mobile-bar"
+          onClick={() => setMobileFormOpen(true)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMobileFormOpen(true); } }}
+          role="button"
+          tabIndex={0}
+          aria-label="Open search filters"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <span className="search-form-mobile-bar-placeholder">Search location, BHK, price...</span>
+        </div>
+
+        {/* Main Search Form (hidden on mobile until bar is tapped) */}
         <form className="search-form" onSubmit={handleSubmit}>
           <div className="form-grid">
             {/* Location Input */}
@@ -226,6 +249,26 @@ const PropertySearchForm = () => {
             Search Properties
           </button>
         </form>
+
+        {/* Mobile only: Post Property button (same style as navbar) */}
+        <div className="search-form-mobile-actions">
+          <Link
+            to={currentUser ? '/post-property' : '/login?redirect=/post-property'}
+            className="search-form-mobile-btn search-form-mobile-btn--secondary"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M9 3v18M3 9h18M3 15h18"/>
+            </svg>
+            Post Property
+          </Link>
+          <Link
+            to="/properties"
+            className="search-form-mobile-btn search-form-mobile-btn--primary"
+          >
+            Browse Properties
+          </Link>
+        </div>
       </div>
     </div>
   );
