@@ -53,7 +53,7 @@ Railway’s free tier includes a monthly credit that’s enough for a small Node
    | `DB_PASSWORD` or `MYSQLPASSWORD` | From MySQL service → `MYSQLPASSWORD` |
    | `DB_NAME` or `MYSQLDATABASE` | From MySQL service → `MYSQLDATABASE` (often `railway`) |
    | `DB_PORT` or `MYSQLPORT` | From MySQL service → `MYSQLPORT` (often `3306`) |
-   | `FRONTEND_URL` | Set after Vercel deploy (e.g. `https://your-app.vercel.app`) |
+   | `FRONTEND_URL` | **Required for deployed frontend.** Your Vercel app URL (e.g. `https://your-app.vercel.app`). Add multiple origins separated by commas if needed. Localhost is always allowed. |
    | `GOOGLE_AUTH_CLIENT_ID` | Your Google OAuth client ID |
    | `GOOGLE_AUTH_CLIENT_SECRET` | Your Google OAuth client secret |
    | `CLOUDINARY_CLOUD_NAME` | Your Cloudinary cloud name |

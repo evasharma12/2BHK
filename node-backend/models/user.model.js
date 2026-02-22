@@ -221,7 +221,7 @@ const User = {
 
   // Used by Google auth to create / update users
   async createOrUpdateFromGoogle(googleData) {
-    const { email, name, picture, sub: googleId } = googleData;
+    const { email, name, picture, googleId } = googleData;
 
     return new Promise((resolve, reject) => {
       // Check if user already exists
