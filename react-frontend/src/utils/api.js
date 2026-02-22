@@ -1,6 +1,12 @@
 // API utility for backend communication
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+if (API_BASE_URL && !API_BASE_URL.startsWith('http://') && !API_BASE_URL.startsWith('https://')) {
+  console.warn(
+    'REACT_APP_API_URL should be a full URL (e.g. https://your-api.railway.app). Missing https:// causes requests to hit the wrong server.'
+  );
+}
+
 function handleFetchError(err, context) {
   if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
     return new Error(

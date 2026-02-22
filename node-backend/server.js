@@ -49,13 +49,16 @@ if (process.env.NODE_ENV === 'development') {
 // ROUTES
 // ============================================
 
-// Health check
+// Health check (root and /health for Railway and other platforms)
 app.get('/', (req, res) => {
   res.json({
     success: true,
     message: '2BHK API is running!',
     version: '1.0.0'
   });
+});
+app.get('/health', (req, res) => {
+  res.status(200).send('ok');
 });
 
 // Serve uploaded property images
@@ -106,8 +109,8 @@ async function startServer() {
       process.exit(1);
     }
     
-    // Start server
-    app.listen(PORT, () => {
+    // Start server - bind to 0.0.0.0 so Railway/proxy can reach the app
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`
 ╔════════════════════════════════════════╗
 ║   2BHK API Server                  ║
