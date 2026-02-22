@@ -22,14 +22,19 @@ async function parseJsonResponse(response) {
 export const api = {
   // Auth endpoints
   async signup(userData) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    });
-    const data = await response.json();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'signup');
+    }
+    const data = await parseJsonResponse(response);
     if (!response.ok || !data.success) {
       throw new Error(data.message || 'Signup failed');
     }
@@ -37,14 +42,19 @@ export const api = {
   },
 
   async login(email, password) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await response.json();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'login');
+    }
+    const data = await parseJsonResponse(response);
     if (!response.ok || !data.success) {
       throw new Error(data.message || 'Login failed');
     }
@@ -52,14 +62,19 @@ export const api = {
   },
 
   async googleAuth(token) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token }),
-    });
-    const data = await response.json();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'Google auth');
+    }
+    const data = await parseJsonResponse(response);
     if (!response.ok || !data.success) {
       throw new Error(data.message || 'Google authentication failed');
     }
