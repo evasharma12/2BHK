@@ -1,6 +1,11 @@
 # Deploy 2BHK (free tier)
 
-Deploy the React frontend and Node backend for free using **Vercel** (frontend) and **Render** (backend). You’ll need a **MySQL** database (e.g. **PlanetScale** or **Railway** free tier).
+Deploy the React frontend and Node backend for free:
+
+- **Frontend:** Vercel (free)
+- **Backend + MySQL:** Railway (free tier with monthly credit)
+
+No paid database required.
 
 ---
 
@@ -13,138 +18,138 @@ If you haven’t already:
 
 ---
 
-## 2. Create a production MySQL database
+## 2. Create a project on Railway (backend + database)
 
-Choose one:
+Railway’s free tier includes a monthly credit that’s enough for a small Node app and MySQL.
 
-### Option A: PlanetScale (free tier)
-
-1. Sign up at [planetscale.com](https://planetscale.com).
-2. Create a new database (e.g. `2bhk-db`).
-3. In the dashboard, open **Connect** → **Connect with** → **General**.
-4. Copy **Host**, **Username**, **Password**, and use your DB name (e.g. `2bhk-db`). You’ll need these for the backend env vars: `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`.
-5. (Optional) If PlanetScale shows a **Branch** and **Connect** string, use the host/user/password from that.
-
-### Option B: Railway (free tier)
-
-1. Sign up at [railway.app](https://railway.app).
-2. **New Project** → **Add MySQL**.
-3. After it’s created, open the MySQL service → **Variables** or **Connect**.
-4. Copy host, user, password, database (often `railway`). Set `DB_PORT=3306` if shown.
-
-### Create tables on the production DB
-
-From your machine, set the production DB credentials and run the table creation script once. The script reads `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` from `node-backend/.env` (or from the environment).
-
-```bash
-cd node-backend
-# Put production DB_HOST, DB_USER, DB_PASSWORD, DB_NAME in .env (or export them), then:
-node storage/createTables.js
-```
-
-Or inline:
-
-```bash
-cd node-backend
-DB_HOST=your-db-host DB_USER=user DB_PASSWORD=secret DB_NAME=2bhk_db node storage/createTables.js
-```
-
----
-
-## 3. Deploy the backend (Render)
-
-1. Go to [render.com](https://render.com) and sign up (e.g. with GitHub).
-2. **New** → **Web Service**.
-3. Connect your GitHub repo and select the **2BHK** repository.
-4. Configure:
-   - **Name:** e.g. `2bhk-api`
+1. Sign up at [railway.app](https://railway.app) (e.g. with GitHub).
+2. **New Project**.
+3. **Add MySQL** (or **Add Plugin** → **MySQL**):
+   - Add a MySQL service. Railway will create the database and expose variables.
+4. After MySQL is created, open the **MySQL** service → **Variables** (or **Connect**).
+   - Note: `MYSQLHOST`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`, `MYSQLPORT`.  
+   - Your backend will use these as `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`.
+5. In the same project, **Add Service** → **GitHub Repo**:
+   - Connect the 2BHK repo.
+   - Select the repo and add a **Web Service** (not a Cron or Worker).
+6. Configure the new **Web Service**:
    - **Root Directory:** `node-backend`
-   - **Runtime:** Node
    - **Build Command:** `npm install`
    - **Start Command:** `npm start`
-5. **Environment** → **Add Environment Variable**. Add:
+   - **Watch Paths:** leave default (or `node-backend`) so only backend changes trigger deploys.
+
+7. **Variables** for the **Web Service** (not the MySQL service):
+   - **Important:** Railway does **not** inject the MySQL service’s variables into your backend. You must add the database variables to the **backend Web Service** yourself.
+   - Open the **MySQL** service → **Variables** tab and note the values. Then open your **backend Web Service** → **Variables** and add them. The app accepts either `DB_*` or Railway’s `MYSQL*` names.
+   - Add:
 
    | Key | Value |
    |-----|--------|
    | `NODE_ENV` | `production` |
-   | `JWT_SECRET` | A long random string (e.g. from a password generator). **Do not** use the default from .env. |
-   | `FRONTEND_URL` | Your frontend URL (you’ll set this after Vercel, e.g. `https://your-app.vercel.app`) |
-   | `DB_HOST` | Production MySQL host |
-   | `DB_USER` | Production MySQL user |
-   | `DB_PASSWORD` | Production MySQL password |
-   | `DB_NAME` | Production MySQL database name |
-   | `GOOGLE_AUTH_CLIENT_ID` | Same as in your .env (Google OAuth client ID) |
-   | `GOOGLE_AUTH_CLIENT_SECRET` | Same as in your .env |
+   | `PORT` | Leave unset (Railway sets this) or `5000` if asked for a target port |
+   | `JWT_SECRET` | A long random string (e.g. from a password generator). Do not use the default from .env. |
+   | `DB_HOST` or `MYSQLHOST` | From MySQL service → Variables → `MYSQLHOST` |
+   | `DB_USER` or `MYSQLUSER` | From MySQL service → `MYSQLUSER` |
+   | `DB_PASSWORD` or `MYSQLPASSWORD` | From MySQL service → `MYSQLPASSWORD` |
+   | `DB_NAME` or `MYSQLDATABASE` | From MySQL service → `MYSQLDATABASE` (often `railway`) |
+   | `DB_PORT` or `MYSQLPORT` | From MySQL service → `MYSQLPORT` (often `3306`) |
+   | `FRONTEND_URL` | Set after Vercel deploy (e.g. `https://your-app.vercel.app`) |
+   | `GOOGLE_AUTH_CLIENT_ID` | Your Google OAuth client ID |
+   | `GOOGLE_AUTH_CLIENT_SECRET` | Your Google OAuth client secret |
    | `CLOUDINARY_CLOUD_NAME` | Your Cloudinary cloud name |
    | `CLOUDINARY_API_KEY` | Your Cloudinary API key |
    | `CLOUDINARY_API_SECRET` | Your Cloudinary API secret |
-   | `API_BASE_URL` | Your Render backend URL (e.g. `https://2bhk-api.onrender.com`) — same as the URL Render gives after deploy |
 
-6. **Create Web Service**. Wait for the first deploy.
-7. Copy the service URL (e.g. `https://2bhk-api.onrender.com`). You’ll use it as `REACT_APP_API_URL` and for `API_BASE_URL` / `FRONTEND_URL` in a moment.
+   Copy each value from the MySQL service’s Variables tab into the backend service. If you use Railway variable references (e.g. `${{MySQL.MYSQLHOST}}`), you can name the variable either `DB_HOST` or `MYSQLHOST`; the app reads both.
 
-Note: On the free tier, the service may sleep after inactivity; the first request after sleep can be slow.
+8. **Settings** → **Networking** → **Generate Domain** so the backend gets a public URL (e.g. `https://2bhk-api-production-xxxx.up.railway.app`).
+9. Add one more variable to the **Web Service**:
+   - `API_BASE_URL` = that same public URL (e.g. `https://2bhk-api-production-xxxx.up.railway.app`).
+
+---
+
+## 3. Create tables on the production MySQL
+
+Use the same DB credentials Railway gave you. From your machine:
+
+```bash
+cd node-backend
+# Set DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT to Railway MySQL values (e.g. in .env), then:
+node storage/createTables.js
+```
+
+Or inline (replace with your Railway MySQL values):
+
+```bash
+cd node-backend
+DB_HOST=containers-us-west-xxx.railway.app DB_USER=root DB_PASSWORD=xxx DB_NAME=railway DB_PORT=3306 node storage/createTables.js
+```
+
+You only need to run this once per database.
 
 ---
 
 ## 4. Deploy the frontend (Vercel)
 
 1. Go to [vercel.com](https://vercel.com) and sign up (e.g. with GitHub).
-2. **Add New** → **Project** → import your GitHub repo.
+2. **Add New** → **Project** → import your 2BHK repo.
 3. Configure:
-   - **Root Directory:** set to `react-frontend` (click **Edit** and choose the `react-frontend` folder).
-   - **Framework Preset:** Create React App (or leave as detected).
+   - **Root Directory:** `react-frontend`
    - **Build Command:** `npm run build`
    - **Output Directory:** `build`
-4. **Environment Variables** → add:
-
-   | Key | Value |
-   |-----|--------|
-   | `REACT_APP_API_URL` | Your Render backend URL (e.g. `https://2bhk-api.onrender.com`) — no trailing slash |
-   | `REACT_APP_GOOGLE_AUTH_CLIENT_ID` | Your Google OAuth client ID (same as backend) |
-
-5. **Deploy**. When it’s done, copy the frontend URL (e.g. `https://2bhk-xxx.vercel.app`).
+4. **Environment Variables:**
+   - `REACT_APP_API_URL` = your Railway backend URL (e.g. `https://2bhk-api-production-xxxx.up.railway.app`) — no trailing slash.
+   - `REACT_APP_GOOGLE_AUTH_CLIENT_ID` = your Google OAuth client ID.
+5. **Deploy**. Copy the frontend URL (e.g. `https://2bhk-xxx.vercel.app`).
 
 ---
 
-## 5. Point backend to frontend (CORS and API base URL)
+## 5. Point backend to frontend (CORS)
 
-1. In **Render** → your backend service → **Environment**:
-   - Set **`FRONTEND_URL`** to your Vercel URL (e.g. `https://2bhk-xxx.vercel.app`). This is used for CORS.
-   - Set **`API_BASE_URL`** to the same Render URL (e.g. `https://2bhk-api.onrender.com`) if the backend uses it for building image URLs.
-2. **Save Changes** so Render redeploys.
+1. In **Railway** → your **backend Web Service** → **Variables**:
+   - Set `FRONTEND_URL` to your Vercel URL (e.g. `https://2bhk-xxx.vercel.app`).
+2. Redeploy the backend if needed (Railway usually redeploys when variables change).
 
 ---
 
 ## 6. Google OAuth (production origins)
 
 1. Open [Google Cloud Console](https://console.cloud.google.com) → **APIs & Services** → **Credentials** → your OAuth 2.0 Client ID.
-2. Under **Authorized JavaScript origins**, add:
-   - `https://your-app.vercel.app` (your real Vercel URL)
-3. Under **Authorized redirect URIs**, add any redirect URL your app uses (e.g. `https://your-app.vercel.app` or the one shown in your login flow).
+2. **Authorized JavaScript origins:** add your Vercel URL (e.g. `https://2bhk-xxx.vercel.app`).
+3. **Authorized redirect URIs:** add the same URL if your app uses it for redirects.
 4. Save.
 
 ---
 
 ## 7. Quick check
 
-- Open your Vercel URL. You should see the 2BHK app.
-- Try: search properties, open a listing, sign up / log in (email and Google).
-- If login or API calls fail, check:
-  - Browser console and Network tab for CORS or 404 errors.
-  - Render logs for backend errors.
-  - `FRONTEND_URL` and `REACT_APP_API_URL` match your deployed URLs.
+- Open your Vercel URL. Use the app: list properties, open a listing, sign up / log in (email or Google).
+- If something fails:
+  - Browser console and Network tab for CORS or wrong API URL.
+  - Railway logs for the backend service.
+  - Ensure `FRONTEND_URL` and `REACT_APP_API_URL` match your deployed URLs.
 
 ---
 
 ## Summary
 
-| Part | Service | URL / Root |
-|------|---------|------------|
-| Frontend | Vercel | Root: `react-frontend` |
-| Backend | Render | Root: `node-backend` |
-| Database | PlanetScale or Railway | Set `DB_*` on Render |
-| Env | Render | `JWT_SECRET`, `FRONTEND_URL`, `API_BASE_URL`, DB, Google, Cloudinary |
-| Env | Vercel | `REACT_APP_API_URL`, `REACT_APP_GOOGLE_AUTH_CLIENT_ID` |
+| Part      | Service | Notes |
+|-----------|---------|--------|
+| Frontend  | Vercel  | Root: `react-frontend` |
+| Backend   | Railway | Root: `node-backend`, public domain generated |
+| Database  | Railway | MySQL plugin in same project |
+| Env (API) | Railway | `DB_*` from MySQL service, `JWT_SECRET`, `FRONTEND_URL`, `API_BASE_URL`, Google, Cloudinary |
+| Env (UI)  | Vercel  | `REACT_APP_API_URL`, `REACT_APP_GOOGLE_AUTH_CLIENT_ID` |
 
-If `createTables.js` doesn’t use env vars yet, you can add `require('dotenv').config()` at the top and use `process.env.DB_HOST`, `process.env.DB_USER`, `process.env.DB_PASSWORD`, `process.env.DB_NAME` (and `process.env.DB_PORT` if needed) so one script works for both local and production.
+---
+
+## Alternative: Render (backend) + Railway (MySQL only)
+
+If you prefer Render for the backend:
+
+1. Create **MySQL on Railway** (steps above: New Project → Add MySQL). Copy `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`.
+2. Deploy **backend on Render**: New → Web Service → repo, Root Directory `node-backend`, Build `npm install`, Start `npm start`. Add the same env vars as in the table above, with `DB_*` from Railway.
+3. Run `node storage/createTables.js` locally with those DB credentials.
+4. Deploy **frontend on Vercel** as in section 4 and set `FRONTEND_URL` and `API_BASE_URL` on Render to your Vercel and Render URLs.
+
+Both options are free for a small MVP.
