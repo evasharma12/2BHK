@@ -25,9 +25,18 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS configuration (allow frontend to call API)
+// CORS: allow FRONTEND_URL(s) plus localhost so local dev and deployed frontend both work
+const frontendUrls = (process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+const devOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+const allowedOrigins = [...new Set([...frontendUrls, ...devOrigins])];
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin(origin, cb) {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(null, false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

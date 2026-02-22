@@ -32,7 +32,7 @@ export const api = {
     const signupUrl = `${API_BASE_URL}/api/auth/signup`;
     // #region agent log
     try {
-      fetch('http://127.0.0.1:7878/ingest/bdfa25f6-f50c-4998-8abf-1b01cf129e40',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2cbbff'},body:JSON.stringify({sessionId:'2cbbff',location:'api.js:signup',message:'signup attempt',data:{url:signupUrl,apiBase:API_BASE_URL,origin:typeof window!=='undefined'?window.location.origin:''},timestamp:Date.now(),hypothesisId:'H1-H3'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7878/ingest/bdfa25f6-f50c-4998-8abf-1b01cf129e40',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2cbbff'},body:JSON.stringify({sessionId:'2cbbff',location:'api.js:signup',message:'signup attempt',data:{url:signupUrl,apiBase:API_BASE_URL,hasDoubleSlash:signupUrl.includes('//'),origin:typeof window!=='undefined'?window.location.origin:''},timestamp:Date.now(),hypothesisId:'H1-H3'})}).catch(()=>{});
     } catch (_) {}
     // #endregion
     try {
@@ -43,6 +43,11 @@ export const api = {
         },
         body: JSON.stringify(userData),
       });
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7878/ingest/bdfa25f6-f50c-4998-8abf-1b01cf129e40',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2cbbff'},body:JSON.stringify({sessionId:'2cbbff',location:'api.js:signup response',message:'signup got response',data:{ok:response?.ok,status:response?.status,url:response?.url},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
     } catch (err) {
       // #region agent log
       try {
