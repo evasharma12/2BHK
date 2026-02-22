@@ -29,8 +29,14 @@ export const api = {
   // Auth endpoints
   async signup(userData) {
     let response;
+    const signupUrl = `${API_BASE_URL}/api/auth/signup`;
+    // #region agent log
     try {
-      response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+      fetch('http://127.0.0.1:7878/ingest/bdfa25f6-f50c-4998-8abf-1b01cf129e40',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2cbbff'},body:JSON.stringify({sessionId:'2cbbff',location:'api.js:signup',message:'signup attempt',data:{url:signupUrl,apiBase:API_BASE_URL,origin:typeof window!=='undefined'?window.location.origin:''},timestamp:Date.now(),hypothesisId:'H1-H3'})}).catch(()=>{});
+    } catch (_) {}
+    // #endregion
+    try {
+      response = await fetch(signupUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -38,6 +44,11 @@ export const api = {
         body: JSON.stringify(userData),
       });
     } catch (err) {
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7878/ingest/bdfa25f6-f50c-4998-8abf-1b01cf129e40',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2cbbff'},body:JSON.stringify({sessionId:'2cbbff',location:'api.js:signup catch',message:'signup fetch threw',data:{errName:err?.name,errMessage:err?.message,apiBase:API_BASE_URL},timestamp:Date.now(),hypothesisId:'H1-H4'})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
       throw handleFetchError(err, 'signup');
     }
     const data = await parseJsonResponse(response);

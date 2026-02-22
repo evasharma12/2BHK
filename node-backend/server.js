@@ -64,6 +64,15 @@ app.get('/health', (req, res) => {
 // Serve uploaded property images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Auth request logging (debug)
+app.use('/api/auth', (req, res, next) => {
+  // #region agent log
+  const payload = { sessionId: '2cbbff', location: 'server.js:auth', message: 'auth request', data: { method: req.method, path: req.path, origin: req.get('origin'), frontendUrl: process.env.FRONTEND_URL }, timestamp: Date.now(), hypothesisId: 'H1-H5' };
+  fetch('http://127.0.0.1:7878/ingest/bdfa25f6-f50c-4998-8abf-1b01cf129e40', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '2cbbff' }, body: JSON.stringify(payload) }).catch(() => {});
+  // #endregion
+  next();
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
