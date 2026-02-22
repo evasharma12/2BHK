@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './EditProfileModal.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
 const USER_TYPES = [
   { value: 'renter', label: '🔑 Renter',        desc: 'Looking to rent a property' },

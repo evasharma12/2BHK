@@ -1,5 +1,5 @@
-// API utility for backend communication
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// API utility for backend communication (strip trailing slashes to avoid double-slash URLs)
+const API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
 if (API_BASE_URL && !API_BASE_URL.startsWith('http://') && !API_BASE_URL.startsWith('https://')) {
   console.warn(
