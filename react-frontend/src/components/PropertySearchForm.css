@@ -138,9 +138,17 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.form-label svg {
+.form-label svg,
+.form-label-rupee {
   color: #2563eb;
   flex-shrink: 0;
+}
+
+.form-label-rupee {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-block;
 }
 
 /* Form Inputs */
