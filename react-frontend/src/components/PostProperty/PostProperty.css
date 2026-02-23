@@ -1,13 +1,18 @@
 /* Post Property Page Styles */
 
 .post-property-page {
+  box-sizing: border-box;
   min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
   padding: 5rem 2rem 3rem;
+  overflow-x: hidden;
 }
 
 .post-property-container {
+  box-sizing: border-box;
   max-width: 900px;
+  width: 100%;
+  min-width: 0;
   margin: 0 auto;
 }
 
@@ -119,6 +124,11 @@
 
 /* Form Container */
 .post-property-form {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   background: #ffffff;
   border-radius: 16px;
   padding: 2.5rem;
@@ -131,15 +141,19 @@
 
 /* Form Section */
 .form-section {
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1.75rem;
+  min-width: 0;
 }
 
 .form-field {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .form-field--full {
@@ -162,7 +176,10 @@
 
 /* Inputs */
 .field-input {
+  box-sizing: border-box;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.875rem 1rem;
   border: 2px solid #e2e8f0;
   border-radius: 8px;
@@ -184,6 +201,7 @@
 }
 
 .field-select {
+  box-sizing: border-box;
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -227,9 +245,11 @@
 
 /* Toggle Buttons */
 .toggle-buttons {
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+  min-width: 0;
 }
 
 .toggle-option {
@@ -272,13 +292,17 @@
 }
 
 .amenities-grid {
+  box-sizing: border-box;
   grid-column: span 2;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 1rem;
+  min-width: 0;
 }
 
 .amenity-card {
+  box-sizing: border-box;
+  min-width: 0;
   padding: 1rem;
   border: 2px solid #e2e8f0;
   border-radius: 10px;
@@ -364,7 +388,9 @@
 }
 
 .image-upload-area {
+  box-sizing: border-box;
   grid-column: span 2;
+  min-width: 0;
   border: 2px dashed #cbd5e1;
   border-radius: 12px;
   padding: 3rem 2rem;
@@ -415,10 +441,12 @@
 }
 
 .preview-grid {
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
+  min-width: 0;
 }
 
 .preview-item {
@@ -512,7 +540,9 @@
 
 /* Pricing Summary */
 .pricing-summary-card {
+  box-sizing: border-box;
   grid-column: span 2;
+  min-width: 0;
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   border: 2px solid #bfdbfe;
   border-radius: 12px;
@@ -585,10 +615,12 @@
 }
 
 .preference-options {
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   margin-top: 0.75rem;
+  min-width: 0;
 }
 
 .preference-option {
@@ -675,7 +707,9 @@
 }
 
 .terms-section {
+  box-sizing: border-box;
   grid-column: span 2;
+  min-width: 0;
   background: #f8fafc;
   padding: 1.25rem;
   border-radius: 10px;
@@ -683,7 +717,9 @@
 }
 
 .privacy-notice {
+  box-sizing: border-box;
   grid-column: span 2;
+  min-width: 0;
   background: #eff6ff;
   border: 1px solid #bfdbfe;
   border-radius: 10px;
@@ -708,12 +744,14 @@
 
 /* Navigation Buttons */
 .form-navigation {
+  box-sizing: border-box;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
   margin-top: 3rem;
   padding-top: 2rem;
   border-top: 2px solid #f1f5f9;
+  min-width: 0;
 }
 
 .nav-btn {
@@ -817,7 +855,7 @@
   }
 
   .post-property-form {
-    padding: 1.75rem;
+    padding: 1.5rem 1.25rem;
   }
 
   .form-section {
@@ -843,8 +881,9 @@
     grid-template-columns: 1fr;
   }
 
+  /* One amenity per row on mobile for consistent padding and no overflow */
   .amenities-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .preference-options {
@@ -862,6 +901,10 @@
 }
 
 @media (max-width: 480px) {
+  .post-property-page {
+    padding: 4rem 1rem 2rem;
+  }
+
   .post-property-title {
     font-size: 1.5rem;
   }
@@ -871,7 +914,7 @@
   }
 
   .post-property-form {
-    padding: 1.25rem;
+    padding: 1.25rem 1rem;
   }
 
   .progress-step-circle {
@@ -883,8 +926,9 @@
     margin: 0 0.25rem;
   }
 
+  /* Keep one amenity per column on small mobile too */
   .amenities-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .preview-grid {

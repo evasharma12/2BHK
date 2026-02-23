@@ -1,3 +1,10 @@
+.post-property-page-wrapper {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
 .post-property-page-wrapper .loading-state {
   display: flex;
   flex-direction: column;
