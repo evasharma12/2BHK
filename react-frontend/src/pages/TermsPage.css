@@ -1,0 +1,157 @@
+/* Terms and Conditions Page */
+
+.terms-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+  padding: 5rem 1.5rem 4rem;
+  box-sizing: border-box;
+}
+
+.terms-container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.terms-back {
+  display: inline-block;
+  font-size: 0.9375rem;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s ease;
+}
+
+.terms-back:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.terms-header {
+  margin-bottom: 2rem;
+}
+
+.terms-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.terms-updated {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.terms-content {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+.terms-intro {
+  font-size: 1rem;
+  color: #475569;
+  line-height: 1.65;
+  margin: 0 0 2rem 0;
+}
+
+.terms-section-block {
+  margin-bottom: 2rem;
+}
+
+.terms-section-block:last-of-type {
+  margin-bottom: 0;
+}
+
+.terms-section-block h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.75rem 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.terms-section-block p {
+  font-size: 0.9375rem;
+  color: #475569;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.terms-section-block strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.terms-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.terms-cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.terms-cta {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: none;
+}
+
+.terms-cta:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-1px);
+}
+
+.terms-cta--secondary {
+  background: #ffffff;
+  color: #64748b;
+  border: 2px solid #e2e8f0;
+}
+
+.terms-cta--secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .terms-page {
+    padding: 4rem 1rem 2rem;
+  }
+
+  .terms-title {
+    font-size: 1.5rem;
+  }
+
+  .terms-content {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .terms-footer-actions {
+    flex-direction: column;
+  }
+
+  .terms-cta {
+    justify-content: center;
+  }
+}

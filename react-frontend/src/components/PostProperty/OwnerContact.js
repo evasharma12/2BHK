@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const OwnerContact = ({ formData, updateFormData }) => {
   return (
@@ -78,8 +79,8 @@ const OwnerContact = ({ formData, updateFormData }) => {
           />
           <span className="checkbox-text">
             I confirm that I am the owner/authorized person to list this property. 
-            I agree to the <a href="/terms" className="terms-link">Terms & Conditions</a> and 
-            <a href="/privacy" className="terms-link"> Privacy Policy</a>.
+            I agree to the <Link to="/terms" className="terms-link">Terms & Conditions</Link> and{' '}
+            <a href="/privacy" className="terms-link">Privacy Policy</a>.
           </span>
         </label>
       </div>

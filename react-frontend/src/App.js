@@ -9,6 +9,7 @@ import PropertiesListPage from './pages/PropertiesListPage';
 import PropertyDetailPage from './pages/PropertyDetailPage';
 import EditPropertyPage from './pages/EditPropertyPage';
 import ProfilePage from './pages/ProfilePage';
+import TermsPage from './pages/TermsPage';
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_AUTH_CLIENT_ID;
 
@@ -27,6 +28,7 @@ function App() {
             <Route path="/properties" element={<PropertiesListPage />} />
             <Route path="/properties/:id" element={<PropertyDetailPage />} />
             <Route path="/properties/:id/edit" element={<EditPropertyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
           </Routes>
         </div>
       </Router>
