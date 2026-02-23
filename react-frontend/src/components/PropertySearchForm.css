@@ -7,7 +7,7 @@
   overflow-x: hidden;
   padding: 6rem 2rem 4rem;
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  min-height: 70vh;
+  min-height: calc(100vh - 70px);
   display: flex;
   align-items: center;
   justify-content: center;

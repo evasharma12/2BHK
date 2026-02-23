@@ -1,0 +1,108 @@
+/* Shared styles for Customer Care and Feedback pages */
+
+.support-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+  padding: 5rem 1.5rem 4rem;
+  box-sizing: border-box;
+}
+
+.support-page__container {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.support-page__back {
+  display: inline-block;
+  font-size: 0.9375rem;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s ease;
+}
+
+.support-page__back:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.support-page__title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 1.5rem 0;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.support-page__content {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+.support-page__content p {
+  font-size: 1rem;
+  color: #475569;
+  line-height: 1.65;
+  margin: 0 0 1rem 0;
+}
+
+.support-page__email {
+  margin: 1.25rem 0 !important;
+}
+
+.support-page__mailto {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.support-page__mailto:hover {
+  text-decoration: underline;
+}
+
+.support-page__hint {
+  font-size: 0.875rem !important;
+  color: #94a3b8 !important;
+  margin-top: 0.5rem !important;
+}
+
+.support-page__btn {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.support-page__btn:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .support-page {
+    padding: 4rem 1rem 2rem;
+  }
+
+  .support-page__title {
+    font-size: 1.5rem;
+  }
+
+  .support-page__content {
+    padding: 1.5rem;
+  }
+}

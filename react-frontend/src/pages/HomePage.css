@@ -1,0 +1,61 @@
+/* Home Page */
+
+.home-page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-footer {
+  background: #ffffff;
+  padding: 2.5rem 2rem 2rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.home-footer__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 2rem;
+}
+
+.home-footer__column h4 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.home-footer__column ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.home-footer__column li {
+  margin-bottom: 0.5rem;
+}
+
+.home-footer__column a {
+  font-size: 0.875rem;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.home-footer__column a:hover {
+  color: #2563eb;
+}
+
+@media (max-width: 768px) {
+  .home-footer {
+    padding: 2rem 1rem 1.5rem;
+  }
+
+  .home-footer__inner {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+}
