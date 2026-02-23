@@ -175,6 +175,17 @@ const User = {
     });
   },
 
+  // Update user_type (e.g. upgrade renter/buyer to 'both' when they post a property)
+  async updateUserType(userId, userType) {
+    return new Promise((resolve, reject) => {
+      const sql = 'UPDATE users SET user_type = ? WHERE user_id = ?';
+      db.query(sql, [userType, userId], (err, result) => {
+        if (err) return reject(err);
+        resolve(result.affectedRows > 0);
+      });
+    });
+  },
+
   // --- Saved properties (for renters/buyers) ---
   async getSavedProperties(userId) {
     return new Promise((resolve, reject) => {

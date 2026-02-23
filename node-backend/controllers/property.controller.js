@@ -19,6 +19,12 @@ class PropertyController {
         });
       }
 
+      // When a renter or buyer posts a property, upgrade their user_type to 'both' so the listing succeeds
+      const user = await User.findById(ownerId);
+      if (user && (user.user_type === 'renter' || user.user_type === 'buyer')) {
+        await User.updateUserType(ownerId, 'both');
+      }
+
       const requiredFields = [
         'property_for',
         'property_type',
@@ -80,23 +86,6 @@ class PropertyController {
       }
       if (body.image_urls && Array.isArray(body.image_urls) && body.image_urls.length > 0) {
         await Property.addImages(propertyId, body.image_urls);
-      }
-
-      // If user is currently 'renter', upgrade to 'both'
-      const user = await User.findById(ownerId);
-      if (user && user.user_type === 'renter') {
-        await new Promise((resolve, reject) => {
-          const sql = `
-            UPDATE users
-            SET user_type = 'both'
-            WHERE user_id = ?
-          `;
-          const db = require('../storage/dbConnection');
-          db.query(sql, [ownerId], (err) => {
-            if (err) return reject(err);
-            resolve();
-          });
-        });
       }
 
       return res.status(201).json({
