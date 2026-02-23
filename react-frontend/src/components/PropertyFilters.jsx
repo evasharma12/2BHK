@@ -1,9 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './PropertyFilters.css';
 
 const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }) => {
+  // Local state for price inputs so typing doesn't trigger search on every keystroke
+  const [localMinPrice, setLocalMinPrice] = useState(filters.minPrice || '');
+  const [localMaxPrice, setLocalMaxPrice] = useState(filters.maxPrice || '');
+
+  useEffect(() => {
+    setLocalMinPrice(filters.minPrice || '');
+    setLocalMaxPrice(filters.maxPrice || '');
+  }, [filters.minPrice, filters.maxPrice]);
+
   const handleChange = (name, value) => {
     onFilterChange({ ...filters, [name]: value });
+  };
+
+  const applyPriceFilter = () => {
+    const min = String(localMinPrice || '').trim();
+    const max = String(localMaxPrice || '').trim();
+    onFilterChange({ ...filters, minPrice: min, maxPrice: max });
   };
 
   const hasActiveFilters = () => {
@@ -113,7 +128,7 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
           </select>
         </div>
 
-        {/* Price Range */}
+        {/* Price Range - apply on blur or via Apply button; typing doesn't refetch on every keystroke */}
         <div className="filter-group filter-group--price">
           <label className="filter-label">Price Range</label>
           <div className="price-inputs">
@@ -121,18 +136,27 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
               type="number"
               placeholder="Min Price"
               className="filter-input"
-              value={filters.minPrice || ''}
-              onChange={(e) => handleChange('minPrice', e.target.value)}
+              value={localMinPrice}
+              onChange={(e) => setLocalMinPrice(e.target.value)}
+              onBlur={applyPriceFilter}
             />
             <span className="price-separator">to</span>
             <input
               type="number"
               placeholder="Max Price"
               className="filter-input"
-              value={filters.maxPrice || ''}
-              onChange={(e) => handleChange('maxPrice', e.target.value)}
+              value={localMaxPrice}
+              onChange={(e) => setLocalMaxPrice(e.target.value)}
+              onBlur={applyPriceFilter}
             />
           </div>
+          <button
+            type="button"
+            className="price-apply-btn"
+            onClick={applyPriceFilter}
+          >
+            Apply
+          </button>
         </div>
       </div>
     </div>
