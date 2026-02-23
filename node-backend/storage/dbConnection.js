@@ -15,40 +15,45 @@ if (process.env.NODE_ENV === 'production' && host === 'localhost') {
   );
 }
 
-const connection = mysql.createConnection({
+// Use a connection pool so connections are recreated when closed (idle timeout, network drop, etc.).
+// Avoids "Can't add new command when connection is in closed state" after long idle or server restarts.
+const pool = mysql.createPool({
   host,
   user,
   password,
   database,
   port: portNum,
-});
-
-// Connect to the database
-connection.connect((err) => {
-  if (err) {
-    console.error('Error connecting to MySQL database:', err);
-    return;
-  }
-  console.log('Connected to MySQL database');
+  connectionLimit: 10,
+  waitForConnections: true,
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
 });
 
 // Helper used by server.js to verify DB connectivity on startup
 async function testConnection() {
   return new Promise((resolve) => {
-    connection.ping((err) => {
+    pool.getConnection((err, conn) => {
       if (err) {
-        console.error('MySQL ping failed:', err);
+        console.error('MySQL getConnection failed:', err);
         resolve(false);
-      } else {
-        console.log('MySQL ping successful');
-        resolve(true);
+        return;
       }
+      conn.ping((pingErr) => {
+        conn.release();
+        if (pingErr) {
+          console.error('MySQL ping failed:', pingErr);
+          resolve(false);
+        } else {
+          console.log('MySQL ping successful');
+          resolve(true);
+        }
+      });
     });
   });
 }
 
-// Default export is the connection object (for existing code),
-// with testConnection attached as a named property (for server.js).
-module.exports = connection;
+// Export the pool: pool.query() has the same API as connection.query(), so existing code works.
+// Only transaction code (user.model create) must use pool.getConnection() then conn.beginTransaction/commit/rollback/release.
+module.exports = pool;
 module.exports.testConnection = testConnection;
-

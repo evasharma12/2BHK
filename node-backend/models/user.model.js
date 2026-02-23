@@ -33,61 +33,86 @@ const User = {
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     return new Promise((resolve, reject) => {
-      // Start a transaction so that user and phones are consistent
-      db.beginTransaction((txErr) => {
-        if (txErr) return reject(txErr);
+      db.getConnection((connErr, conn) => {
+        if (connErr) return reject(connErr);
 
-        const insertUserSql = `
-          INSERT INTO users (username, email, password_hash, user_type, full_name)
-          VALUES (?, ?, ?, ?, ?)
-        `;
+        const release = (fn) => (err, ...args) => {
+          conn.release();
+          if (fn) fn(err, ...args);
+        };
 
-        db.query(
-          insertUserSql,
-          [username, email, passwordHash, user_type || 'renter', full_name || null],
-          (userErr, result) => {
-            if (userErr) {
-              return db.rollback(() => reject(userErr));
-            }
+        conn.beginTransaction((txErr) => {
+          if (txErr) {
+            conn.release();
+            return reject(txErr);
+          }
 
-            const userId = result.insertId;
+          const insertUserSql = `
+            INSERT INTO users (username, email, password_hash, user_type, full_name)
+            VALUES (?, ?, ?, ?, ?)
+          `;
 
-            // If no phone numbers provided, just commit
-            if (!phone_numbers || !Array.isArray(phone_numbers) || phone_numbers.length === 0) {
-              return db.commit((commitErr) => {
-                if (commitErr) {
-                  return db.rollback(() => reject(commitErr));
-                }
-                resolve(userId);
-              });
-            }
-
-            // Insert phone numbers
-            const insertPhoneSql = `
-              INSERT INTO user_phones (user_id, phone_number, is_primary)
-              VALUES ?
-            `;
-
-            const values = phone_numbers.map((num, index) => [
-              userId,
-              num,
-              index === 0 // first number as primary
-            ]);
-
-            db.query(insertPhoneSql, [values], (phoneErr) => {
-              if (phoneErr) {
-                return db.rollback(() => reject(phoneErr));
+          conn.query(
+            insertUserSql,
+            [username, email, passwordHash, user_type || 'renter', full_name || null],
+            (userErr, result) => {
+              if (userErr) {
+                return conn.rollback(() => {
+                  conn.release();
+                  reject(userErr);
+                });
               }
 
-              db.commit((commitErr) => {
-                if (commitErr) {
-                  return db.rollback(() => reject(commitErr));
+              const userId = result.insertId;
+
+              // If no phone numbers provided, just commit
+              if (!phone_numbers || !Array.isArray(phone_numbers) || phone_numbers.length === 0) {
+                return conn.commit((commitErr) => {
+                  if (commitErr) {
+                    return conn.rollback(() => {
+                      conn.release();
+                      reject(commitErr);
+                    });
+                  }
+                  conn.release();
+                  resolve(userId);
+                });
+              }
+
+              // Insert phone numbers
+              const insertPhoneSql = `
+                INSERT INTO user_phones (user_id, phone_number, is_primary)
+                VALUES ?
+              `;
+
+              const values = phone_numbers.map((num, index) => [
+                userId,
+                num,
+                index === 0 // first number as primary
+              ]);
+
+              conn.query(insertPhoneSql, [values], (phoneErr) => {
+                if (phoneErr) {
+                  return conn.rollback(() => {
+                    conn.release();
+                    reject(phoneErr);
+                  });
                 }
-                resolve(userId);
+
+                conn.commit((commitErr) => {
+                  if (commitErr) {
+                    return conn.rollback(() => {
+                      conn.release();
+                      reject(commitErr);
+                    });
+                  }
+                  conn.release();
+                  resolve(userId);
+                });
               });
-            });
-          }
-        );
+            }
+          );
+        });
       });
     });
   },
