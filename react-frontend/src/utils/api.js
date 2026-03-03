@@ -9,6 +9,33 @@ if (API_BASE_URL && !API_BASE_URL.startsWith('http://') && !API_BASE_URL.startsW
 
 function handleFetchError(err, context) {
   if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7878/ingest/bdfa25f6-f50c-4998-8abf-1b01cf129e40', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Debug-Session-Id': '2cbbff',
+        },
+        body: JSON.stringify({
+          sessionId: '2cbbff',
+          runId: 'initial-login-debug',
+          hypothesisId: 'H1-H4',
+          location: 'api.js:handleFetchError',
+          message: 'fetch failed - backend not reachable',
+          data: {
+            context,
+            errName: err?.name,
+            errMessage: err?.message,
+            apiBase: API_BASE_URL,
+            origin: typeof window !== 'undefined' ? window.location.origin : '',
+            href: typeof window !== 'undefined' ? window.location.href : '',
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+    } catch (_) {}
+    // #endregion
     return new Error(
       `Cannot reach the server at ${API_BASE_URL}. Make sure the backend is running (e.g. \`npm run dev\` in node-backend) and the URL is correct.`
     );
