@@ -43,10 +43,10 @@ exit;
 ### **Step 4: Create Tables**
 
 ```bash
-node createSchema.js
+node storage/createTables.js
 ```
 
-This creates all 9 tables with indexes and sample amenities data.
+This creates all tables with indexes and sample amenities data.
 
 ### **Step 5: Start Server**
 
@@ -498,6 +498,15 @@ kill -9 <PID>
 - Check JWT_SECRET in .env matches
 - Token might be expired (7 days expiry)
 - Login again to get new token
+
+---
+
+## Deployment (AWS and others)
+
+The backend is designed to run on **AWS Elastic Beanstalk** (Node.js) with **AWS RDS (MySQL)**. For full steps (RDS, Beanstalk, env vars, and frontend on Vercel), see the root **[DEPLOYMENT.md](../DEPLOYMENT.md)**.
+
+- **AWS:** Deploy the contents of `node-backend` as a ZIP to Elastic Beanstalk; set `DB_*` to your RDS instance and other env vars as in DEPLOYMENT.md.
+- **Railway / Render / Fly.io:** Same env vars; use `node-backend` as the root directory. See DEPLOYMENT.md for alternatives when Railway is blocked (e.g. Jio).
 
 ---
 

@@ -63,7 +63,12 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/a
 
 ### Deployment
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+This app is deployed with:
+
+- **Frontend:** Vercel
+- **Backend:** AWS Elastic Beanstalk (Node.js) — see **[DEPLOYMENT.md](../../DEPLOYMENT.md)** in the repo root for full deployment steps (AWS RDS MySQL, Beanstalk, env vars, and CORS).
+
+Set `REACT_APP_API_URL` to your backend URL and `REACT_APP_GOOGLE_AUTH_CLIENT_ID` for Google sign-in. See DEPLOYMENT.md for alternatives (Railway, Render) when needed.
 
 ### `npm run build` fails to minify
 
