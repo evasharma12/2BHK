@@ -133,8 +133,7 @@ async function startServer() {
     const dbConnected = await testConnection();
     
     if (!dbConnected) {
-      console.error('Failed to connect to database. Exiting...');
-      process.exit(1);
+      console.error('Failed to connect to database at startup. Continuing so platform health checks can pass; DB-backed routes may fail until DB is reachable.');
     }
     
     // Start server - bind to 0.0.0.0 so Railway/proxy can reach the app
