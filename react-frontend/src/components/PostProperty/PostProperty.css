@@ -236,6 +236,25 @@
   padding-left: 2.5rem;
 }
 
+.field-input--with-mobile-prefix {
+  /* Ensure enough visual gap between `+91` prefix and user digits */
+  padding-left: 3.2rem;
+}
+
+.field-error {
+  box-sizing: border-box;
+  color: #dc2626;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.field-input--error {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
 .price-words {
   font-size: 0.875rem;
   color: #2563eb;

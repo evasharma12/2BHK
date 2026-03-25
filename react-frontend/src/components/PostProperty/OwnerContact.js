@@ -1,14 +1,51 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const OwnerContact = ({ formData, updateFormData }) => {
+  const [touchedMobile, setTouchedMobile] = useState(false);
+
+  const mobileValue = (formData.mobileNo || '').trim();
+  const mobileError =
+    touchedMobile && !/^[0-9]{10}$/.test(mobileValue)
+      ? 'Please enter a valid 10-digit mobile number.'
+      : '';
+
   return (
     <div className="form-section">
       <div className="contact-info">
         <p className="field-label">Availability & Contact</p>
         <p className="field-hint">
-          Your contact details will be taken from your profile and shown to interested buyers/tenants.
+          Your phone number will be saved and used as the primary contact for interested buyers/tenants.
         </p>
+      </div>
+
+      {/* Mobile No */}
+      <div className="form-field form-field--full">
+        <label htmlFor="mobileNo" className="field-label">
+          Mobile No*
+        </label>
+        {mobileError && (
+          <div className="field-error" role="alert">
+            {mobileError}
+          </div>
+        )}
+        <div className="input-with-prefix">
+          <span className="input-prefix">+91</span>
+          <input
+            type="tel"
+            id="mobileNo"
+            className={`field-input field-input--with-mobile-prefix ${mobileError ? 'field-input--error' : ''}`}
+            value={formData.mobileNo}
+            onChange={(e) => updateFormData('mobileNo', e.target.value)}
+            onBlur={() => setTouchedMobile(true)}
+            placeholder="10-digit mobile number"
+            maxLength={10}
+            required
+            inputMode="numeric"
+            pattern="^[0-9]{10}$"
+          />
+        </div>
+        <span className="field-hint">Used as the primary phone in `user_phones`.</span>
       </div>
 
       {/* Available From Date */}
@@ -25,48 +62,6 @@ const OwnerContact = ({ formData, updateFormData }) => {
           min={new Date().toISOString().split('T')[0]}
           required
         />
-      </div>
-
-      {/* Contact Preferences */}
-      <div className="contact-preferences">
-        <p className="field-label">Preferred Contact Method</p>
-        <div className="preference-options">
-          <label className="preference-option">
-            <input
-              type="radio"
-              name="contactMethod"
-              value="phone"
-              defaultChecked
-            />
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
-            </svg>
-            <span>Phone Call</span>
-          </label>
-          <label className="preference-option">
-            <input
-              type="radio"
-              name="contactMethod"
-              value="email"
-            />
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
-            </svg>
-            <span>Email</span>
-          </label>
-          <label className="preference-option">
-            <input
-              type="radio"
-              name="contactMethod"
-              value="both"
-            />
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-            </svg>
-            <span>Both</span>
-          </label>
-        </div>
       </div>
 
       {/* Terms and Conditions */}

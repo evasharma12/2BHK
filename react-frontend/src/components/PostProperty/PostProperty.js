@@ -32,6 +32,7 @@ const defaultFormData = {
   images: [],
   description: '',
   availableFrom: '',
+  mobileNo: '',
 };
 
 const PostProperty = ({ propertyId = null, initialFormData = null }) => {
@@ -41,7 +42,18 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState(() =>
-    initialFormData ? { ...defaultFormData, ...initialFormData } : { ...defaultFormData }
+    (() => {
+      const user = api.getUser();
+      const primaryPhone = user?.phone_numbers?.split(',')?.[0]?.trim() || '';
+
+      const base = initialFormData
+        ? { ...defaultFormData, ...initialFormData }
+        : { ...defaultFormData };
+
+      // Prefill from profile only if the edit payload didn't provide it.
+      if (!base.mobileNo) base.mobileNo = primaryPhone;
+      return base;
+    })()
   );
 
   const totalSteps = 6;
@@ -116,6 +128,7 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
         security_deposit: formData.securityDeposit,
         description: formData.description,
         available_from: formData.availableFrom,
+        mobile_no: formData.mobileNo,
         amenities: formData.amenities || [],
         image_urls: imageUrls,
       };
