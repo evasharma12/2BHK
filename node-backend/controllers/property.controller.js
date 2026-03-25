@@ -1,10 +1,79 @@
 const path = require('path');
 const fs = require('fs');
+const db = require('../storage/dbConnection');
 const Property = require('../models/property.model');
 const User = require('../models/user.model');
 const { isConfigured: cloudinaryConfigured, uploadStream: cloudinaryUpload } = require('../config/cloudinary');
 
 const uploadsDir = path.join(__dirname, '../uploads/properties');
+
+function normalizePhoneInput(phone) {
+  if (phone === undefined || phone === null) return '';
+  return String(phone).trim();
+}
+
+function isValidPhoneInput(phone) {
+  // Accept:
+  // - 10 digits (e.g., 9876543210)
+  // - 91 + 10 digits (e.g., 919876543210)
+  // - optional leading + (e.g., +919876543210)
+  const normalized = phone.startsWith('+') ? phone.slice(1) : phone;
+  return /^\d{10}$/.test(normalized) || /^91\d{10}$/.test(normalized);
+}
+
+function upsertPrimaryPhone(userId, phone_number) {
+  const phone = normalizePhoneInput(phone_number);
+  if (!phone) return Promise.resolve();
+  if (!isValidPhoneInput(phone)) {
+    return Promise.reject(new Error('Invalid mobile number. Please enter a valid Indian mobile number.'));
+  }
+
+  // Keep this behavior consistent with `UserController.updatePhone`:
+  // update the existing primary phone (if any), otherwise insert a new primary phone.
+  return new Promise((resolve, reject) => {
+    const selectSql = `
+      SELECT phone_id
+      FROM user_phones
+      WHERE user_id = ? AND is_primary = 1
+      LIMIT 1
+    `;
+
+    db.query(selectSql, [userId], (selectErr, results) => {
+      if (selectErr) {
+        console.error('Select phone error:', selectErr);
+        return reject(selectErr);
+      }
+
+      if (results.length > 0) {
+        const phoneId = results[0].phone_id;
+        const updateSql = `
+          UPDATE user_phones
+          SET phone_number = ?
+          WHERE phone_id = ?
+        `;
+        db.query(updateSql, [phone, phoneId], (updateErr) => {
+          if (updateErr) {
+            console.error('Update phone error:', updateErr);
+            return reject(updateErr);
+          }
+          return resolve();
+        });
+      } else {
+        const insertSql = `
+          INSERT INTO user_phones (user_id, phone_number, is_primary)
+          VALUES (?, ?, 1)
+        `;
+        db.query(insertSql, [userId, phone], (insertErr) => {
+          if (insertErr) {
+            console.error('Insert phone error:', insertErr);
+            return reject(insertErr);
+          }
+          return resolve();
+        });
+      }
+    });
+  });
+}
 
 class PropertyController {
   static async createProperty(req, res) {
@@ -51,6 +120,8 @@ class PropertyController {
         }
       }
 
+      const mobileNo = body.mobile_no || body.mobileNo;
+
       const propertyData = {
         owner_id: ownerId,
         property_for: body.property_for,
@@ -79,6 +150,10 @@ class PropertyController {
         available_from: body.available_from || null,
       };
 
+      if (mobileNo) {
+        await upsertPrimaryPhone(ownerId, mobileNo);
+      }
+
       const propertyId = await Property.create(propertyData);
 
       if (body.amenities && Array.isArray(body.amenities) && body.amenities.length > 0) {
@@ -97,6 +172,9 @@ class PropertyController {
       });
     } catch (error) {
       console.error('Create property error:', error);
+      if (error?.message?.includes('Invalid mobile number')) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
       return res.status(500).json({
         success: false,
         message: 'Failed to create property',
@@ -301,6 +379,9 @@ class PropertyController {
           });
         }
       }
+
+      const mobileNo = body.mobile_no || body.mobileNo;
+
       const updateData = {
         property_for: body.property_for,
         property_type: body.property_type,
@@ -340,6 +421,11 @@ class PropertyController {
           message: 'Property not found or you do not have permission to edit it',
         });
       }
+
+      if (mobileNo) {
+        await upsertPrimaryPhone(userId, mobileNo);
+      }
+
       return res.json({
         success: true,
         message: 'Property updated successfully',
@@ -347,6 +433,9 @@ class PropertyController {
       });
     } catch (error) {
       console.error('Update property error:', error);
+      if (error?.message?.includes('Invalid mobile number')) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
       return res.status(500).json({
         success: false,
         message: 'Failed to update property',
