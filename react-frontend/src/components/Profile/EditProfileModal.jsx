@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './EditProfileModal.css';
+import PhoneOtpVerifier from '../common/PhoneOtpVerifier';
 
 const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
@@ -18,10 +19,12 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError]       = useState('');
+  const [isPhoneVerified, setIsPhoneVerified] = useState(true);
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
     setError('');
+    if (field === 'phone') setIsPhoneVerified(false);
   };
 
   const handleSubmit = async (e) => {
@@ -53,6 +56,10 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
 
       // Update phone separately if changed
       if (form.phone && form.phone !== user.phone_numbers?.split(',')[0]) {
+        if (!isPhoneVerified) {
+          setError('Please verify your new phone number with OTP before saving.');
+          return;
+        }
         await fetch(`${API_URL}/api/users/${user.user_id}/phone`, {
           method: 'PUT',
           headers: {
@@ -137,6 +144,11 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
                 maxLength={10}
               />
             </div>
+            <PhoneOtpVerifier
+              userId={user.user_id}
+              phoneNumber={form.phone}
+              onVerifiedChange={setIsPhoneVerified}
+            />
           </div>
 
           {/* User Type */}

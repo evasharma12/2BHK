@@ -9,7 +9,7 @@ const uploadsDir = path.join(__dirname, '../uploads/properties');
 
 function normalizePhoneInput(phone) {
   if (phone === undefined || phone === null) return '';
-  return String(phone).trim();
+  return String(phone).trim().replace(/\D/g, '');
 }
 
 function isValidPhoneInput(phone) {
@@ -22,17 +22,18 @@ function isValidPhoneInput(phone) {
 }
 
 function upsertPrimaryPhone(userId, phone_number) {
-  const phone = normalizePhoneInput(phone_number);
-  if (!phone) return Promise.resolve();
-  if (!isValidPhoneInput(phone)) {
+  const rawPhone = normalizePhoneInput(phone_number);
+  if (!rawPhone) return Promise.resolve();
+  if (!isValidPhoneInput(rawPhone)) {
     return Promise.reject(new Error('Invalid mobile number. Please enter a valid Indian mobile number.'));
   }
+  const phone = rawPhone.length === 12 && rawPhone.startsWith('91') ? rawPhone.slice(2) : rawPhone;
 
   // Keep this behavior consistent with `UserController.updatePhone`:
   // update the existing primary phone (if any), otherwise insert a new primary phone.
   return new Promise((resolve, reject) => {
     const selectSql = `
-      SELECT phone_id
+      SELECT phone_id, phone_number, is_verified
       FROM user_phones
       WHERE user_id = ? AND is_primary = 1
       LIMIT 1
@@ -46,12 +47,18 @@ function upsertPrimaryPhone(userId, phone_number) {
 
       if (results.length > 0) {
         const phoneId = results[0].phone_id;
+        const existingPhone = normalizePhoneInput(results[0].phone_number);
+        const existing10 =
+          existingPhone.length === 12 && existingPhone.startsWith('91')
+            ? existingPhone.slice(2)
+            : existingPhone;
+        const keepVerified = existing10 === phone && !!results[0].is_verified;
         const updateSql = `
           UPDATE user_phones
-          SET phone_number = ?
+          SET phone_number = ?, is_verified = ?
           WHERE phone_id = ?
         `;
-        db.query(updateSql, [phone, phoneId], (updateErr) => {
+        db.query(updateSql, [phone, keepVerified ? 1 : 0, phoneId], (updateErr) => {
           if (updateErr) {
             console.error('Update phone error:', updateErr);
             return reject(updateErr);
@@ -60,8 +67,8 @@ function upsertPrimaryPhone(userId, phone_number) {
         });
       } else {
         const insertSql = `
-          INSERT INTO user_phones (user_id, phone_number, is_primary)
-          VALUES (?, ?, 1)
+          INSERT INTO user_phones (user_id, phone_number, is_primary, is_verified)
+          VALUES (?, ?, 1, 0)
         `;
         db.query(insertSql, [userId, phone], (insertErr) => {
           if (insertErr) {

@@ -2,50 +2,13 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const OwnerContact = ({ formData, updateFormData }) => {
-  const [touchedMobile, setTouchedMobile] = useState(false);
-
-  const mobileValue = (formData.mobileNo || '').trim();
-  const mobileError =
-    touchedMobile && !/^[0-9]{10}$/.test(mobileValue)
-      ? 'Please enter a valid 10-digit mobile number.'
-      : '';
-
   return (
     <div className="form-section">
       <div className="contact-info">
         <p className="field-label">Availability & Contact</p>
         <p className="field-hint">
-          Your phone number will be saved and used as the primary contact for interested buyers/tenants.
+          Your contact phone number will be taken from your verified profile details.
         </p>
-      </div>
-
-      {/* Mobile No */}
-      <div className="form-field form-field--full">
-        <label htmlFor="mobileNo" className="field-label">
-          Mobile No*
-        </label>
-        {mobileError && (
-          <div className="field-error" role="alert">
-            {mobileError}
-          </div>
-        )}
-        <div className="input-with-prefix">
-          <span className="input-prefix">+91</span>
-          <input
-            type="tel"
-            id="mobileNo"
-            className={`field-input field-input--with-mobile-prefix ${mobileError ? 'field-input--error' : ''}`}
-            value={formData.mobileNo}
-            onChange={(e) => updateFormData('mobileNo', e.target.value)}
-            onBlur={() => setTouchedMobile(true)}
-            placeholder="10-digit mobile number"
-            maxLength={10}
-            required
-            inputMode="numeric"
-            pattern="^[0-9]{10}$"
-          />
-        </div>
-        <span className="field-hint">Used as the primary phone in `user_phones`.</span>
       </div>
 
       {/* Available From Date */}

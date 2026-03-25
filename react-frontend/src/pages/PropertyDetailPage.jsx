@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ImageGallery from '../components/ImageGallery';
 import ContactOwner from '../components/ContactOwner';
@@ -115,6 +115,16 @@ const PropertyDetailPage = () => {
   const getAmenityLabel = (amenity) => {
     return amenity.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
+
+  const propertyMapEmbedUrl = useMemo(() => {
+    if (!property) return '';
+    const query = [property.address, property.locality, property.city, property.pincode]
+      .filter(Boolean)
+      .join(', ')
+      .trim();
+    if (!query) return '';
+    return `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=16&output=embed`;
+  }, [property]);
 
   const handleSaveClick = async () => {
     if (!user?.user_id) {
@@ -386,6 +396,22 @@ const PropertyDetailPage = () => {
                 )}
               </div>
             </section>
+
+            {/* Location Map */}
+            {propertyMapEmbedUrl && (
+              <section className="detail-section">
+                <h2 className="section-title">Location</h2>
+                <div className="property-map-wrap">
+                  <iframe
+                    title="Property location map"
+                    src={propertyMapEmbedUrl}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="property-map-iframe"
+                  />
+                </div>
+              </section>
+            )}
 
             {/* Description */}
             <section className="detail-section">

@@ -392,6 +392,19 @@
   font-size: 1.5rem;
 }
 
+.property-map-wrap {
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.property-map-iframe {
+  width: 100%;
+  height: 320px;
+  border: 0;
+}
+
 /* Loading State */
 .loading-state {
   display: flex;

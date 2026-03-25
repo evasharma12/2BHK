@@ -3,6 +3,7 @@ import ProfileHeader from '../components/Profile/ProfileHeader';
 import ProfileTabs from '../components/Profile/ProfileTabs';
 import SavedProperties, { MyListings, MyInquiries } from '../components/Profile/SavedProperties';
 import EditProfileModal from '../components/Profile/EditProfileModal';
+import { api } from '../utils/api';
 import './ProfilePage.css';
 
 const isOwnerType = (userType) => userType === 'owner' || userType === 'both';
@@ -14,13 +15,48 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setActiveTab(isOwnerType(parsedUser.user_type) ? 'listings' : 'saved');
-    }
-    setIsLoading(false);
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      setIsLoading(true);
+      const storedUser = localStorage.getItem('user');
+
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          if (!cancelled) {
+            setUser(parsedUser);
+            setActiveTab(isOwnerType(parsedUser.user_type) ? 'listings' : 'saved');
+          }
+        } catch (_) {}
+      }
+
+      try {
+        const freshUser = await api.getCurrentUser();
+        if (!cancelled) {
+          setUser(freshUser);
+          localStorage.setItem('user', JSON.stringify(freshUser));
+          setActiveTab((prev) => {
+            if (isOwnerType(freshUser.user_type)) {
+              return prev === 'saved' || prev === 'inquiries' || prev === 'listings'
+                ? prev
+                : 'listings';
+            }
+            return prev === 'saved' || prev === 'inquiries' ? prev : 'saved';
+          });
+        }
+      } catch (err) {
+        // Keep localStorage user as fallback if network refresh fails.
+        console.warn('Failed to refresh profile from backend:', err?.message || err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleProfileUpdate = (updatedUser) => {

@@ -1,6 +1,112 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '../../utils/api';
 
 const PropertyBasicInfo = ({ formData, updateFormData, updateMultipleFields }) => {
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [isAddressLoading, setIsAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState('');
+  const [mapLocation, setMapLocation] = useState(null);
+  const [selectedPlaceId, setSelectedPlaceId] = useState('');
+  const addressWrapRef = useRef(null);
+
+  const mapEmbedUrl = useMemo(() => {
+    if (!mapLocation?.lat || !mapLocation?.lng) return '';
+    return `https://www.google.com/maps?q=${mapLocation.lat},${mapLocation.lng}&z=16&output=embed`;
+  }, [mapLocation]);
+
+  useEffect(() => {
+    function handleOutsideClick(e) {
+      if (addressWrapRef.current && !addressWrapRef.current.contains(e.target)) {
+        setShowAddressSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    const query = (formData.address || '').trim();
+    if (query.length < 3) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      setIsAddressLoading(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsAddressLoading(true);
+      setAddressError('');
+      try {
+        const suggestions = await api.getAddressSuggestions(query);
+        setAddressSuggestions(suggestions);
+        setShowAddressSuggestions(true);
+      } catch (err) {
+        setAddressSuggestions([]);
+        setAddressError(err.message || 'Failed to fetch address suggestions');
+      } finally {
+        setIsAddressLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.address]);
+
+  const getAddressPart = (components, type) => {
+    const match = (components || []).find((c) => (c.types || []).includes(type));
+    return match?.long_name || '';
+  };
+
+  const applyGeocodeResultToForm = (geo, fallbackAddress = '') => {
+    const locality =
+      getAddressPart(geo.address_components, 'sublocality_level_1') ||
+      getAddressPart(geo.address_components, 'sublocality') ||
+      getAddressPart(geo.address_components, 'neighborhood') ||
+      getAddressPart(geo.address_components, 'locality');
+    const city =
+      getAddressPart(geo.address_components, 'locality') ||
+      getAddressPart(geo.address_components, 'administrative_area_level_2') ||
+      getAddressPart(geo.address_components, 'administrative_area_level_1');
+    const pincode = getAddressPart(geo.address_components, 'postal_code');
+
+    updateMultipleFields({
+      address: geo.formatted_address || fallbackAddress || formData.address,
+      locality: locality || formData.locality,
+      city: city || formData.city,
+      pincode: pincode || formData.pincode,
+    });
+    if (geo.location?.lat && geo.location?.lng) {
+      setMapLocation({ lat: geo.location.lat, lng: geo.location.lng });
+    }
+  };
+
+  const handleAddressSuggestionSelect = async (suggestion) => {
+    setShowAddressSuggestions(false);
+    setSelectedPlaceId(suggestion.place_id || '');
+    updateFormData('address', suggestion.description || '');
+    setAddressError('');
+
+    if (!suggestion.place_id) return;
+    try {
+      const geo = await api.geocodeAddress({ placeId: suggestion.place_id });
+      applyGeocodeResultToForm(geo, suggestion.description);
+    } catch (err) {
+      setAddressError(err.message || 'Failed to locate selected address');
+    }
+  };
+
+  const handleAddressBlur = async () => {
+    const query = (formData.address || '').trim();
+    if (!query || selectedPlaceId) return;
+
+    try {
+      const geo = await api.geocodeAddress({ address: query });
+      applyGeocodeResultToForm(geo, query);
+    } catch {
+      // Do not block form entry; only skip map update when geocode fails.
+    }
+  };
+
   return (
     <div className="form-section">
       {/* Property For Toggle */}
@@ -78,15 +184,70 @@ const PropertyBasicInfo = ({ formData, updateFormData, updateMultipleFields }) =
       {/* Location Fields */}
       <div className="form-field form-field--full">
         <label htmlFor="address" className="field-label">Property Address*</label>
-        <input
-          type="text"
-          id="address"
-          className="field-input"
-          placeholder="Building name, street address"
-          value={formData.address}
-          onChange={(e) => updateFormData('address', e.target.value)}
-          required
-        />
+        <div className="address-autocomplete-wrap" ref={addressWrapRef}>
+          <input
+            type="text"
+            id="address"
+            className="field-input"
+            placeholder="Building name, street address"
+            value={formData.address}
+            onChange={(e) => {
+              setSelectedPlaceId('');
+              updateFormData('address', e.target.value);
+            }}
+            onFocus={() => {
+              if (addressSuggestions.length > 0) setShowAddressSuggestions(true);
+            }}
+            onBlur={handleAddressBlur}
+            autoComplete="off"
+            required
+          />
+          {isAddressLoading && (
+            <div className="address-autocomplete-status">Loading suggestions...</div>
+          )}
+          {addressError && (
+            <div className="field-error" role="alert">{addressError}</div>
+          )}
+          {showAddressSuggestions && addressSuggestions.length > 0 && (
+            <div className="address-suggestions-dropdown">
+              {addressSuggestions.map((s) => (
+                <button
+                  key={s.place_id}
+                  type="button"
+                  className="address-suggestion-item"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleAddressSuggestionSelect(s)}
+                >
+                  <span className="address-suggestion-main">
+                    {s.structured_formatting?.main_text || s.description}
+                  </span>
+                  <span className="address-suggestion-secondary">
+                    {s.structured_formatting?.secondary_text || ''}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="form-field form-field--full">
+        <label className="field-label">Map Preview</label>
+        <div className="address-map-preview">
+          {mapEmbedUrl ? (
+            <iframe
+              title="Property location preview"
+              src={mapEmbedUrl}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="address-map-iframe"
+            />
+          ) : (
+            <p className="field-hint">
+              Select an address suggestion to preview it on the map.
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="form-field">

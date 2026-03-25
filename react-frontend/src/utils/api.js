@@ -132,6 +132,32 @@ export const api = {
     return data;
   },
 
+  async getCurrentUser() {
+    const token = this.getAuthToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'get current user');
+    }
+
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to fetch user');
+    }
+    return data.data;
+  },
+
   // Property endpoints
   async createProperty(propertyData) {
     const token = this.getAuthToken();
@@ -273,6 +299,56 @@ export const api = {
     return data;
   },
 
+  async getPhoneVerificationStatus(userId, phoneNumber) {
+    const token = this.getAuthToken();
+    const qs = new URLSearchParams({ phone_number: phoneNumber || '' });
+    let response;
+    try {
+      response = await fetch(
+        `${API_BASE_URL}/api/users/${userId}/phone/verification-status?${qs.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+    } catch (err) {
+      throw handleFetchError(err, 'phone verification status');
+    }
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to check phone verification status');
+    }
+    return data.data;
+  },
+
+  async verifyPhoneOtp(userId, phoneNumber, firebaseIdToken) {
+    const token = this.getAuthToken();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/users/${userId}/phone/verify-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          phone_number: phoneNumber,
+          firebase_id_token: firebaseIdToken,
+        }),
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'phone otp verification');
+    }
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to verify phone number');
+    }
+    return data.data;
+  },
+
   async uploadPropertyImages(files) {
     const token = this.getAuthToken();
     const formData = new FormData();
@@ -296,6 +372,58 @@ export const api = {
       throw new Error(data.message || 'Failed to upload images');
     }
     return data;
+  },
+
+  async getAddressSuggestions(input) {
+    const query = String(input || '').trim();
+    if (!query || query.length < 3) return [];
+
+    let response;
+    try {
+      response = await fetch(
+        `${API_BASE_URL}/api/maps/autocomplete?input=${encodeURIComponent(query)}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    } catch (err) {
+      throw handleFetchError(err, 'address autocomplete');
+    }
+
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to fetch address suggestions');
+    }
+    return data.data?.predictions || [];
+  },
+
+  async geocodeAddress(params = {}) {
+    const placeId = params.placeId ? String(params.placeId).trim() : '';
+    const address = params.address ? String(params.address).trim() : '';
+
+    const search = new URLSearchParams();
+    if (placeId) search.set('place_id', placeId);
+    if (address) search.set('address', address);
+    if (!placeId && !address) {
+      throw new Error('Either placeId or address is required');
+    }
+
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/maps/geocode?${search.toString()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'address geocode');
+    }
+
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to geocode address');
+    }
+    return data.data;
   },
 
   // Helper to get auth token from localStorage

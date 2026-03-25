@@ -235,7 +235,7 @@ class AuthController {
     try {
       const userId = req.user.user_id;
       
-      const user = await User.findById(userId);
+      const user = await User.findByIdWithPhones(userId);
       
       if (!user) {
         return res.status(404).json({
@@ -243,6 +243,8 @@ class AuthController {
           message: 'User not found'
         });
       }
+
+      delete user.password_hash;
       
       res.json({
         success: true,

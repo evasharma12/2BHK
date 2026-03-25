@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './PropertyCard.css';
 
+const DEFAULT_NO_IMAGE_URL = 'https://skhcn.hatinh.gov.vn/storage/images1685430_4.jpg';
+
 const PropertyCard = ({ property }) => {
   const {
     id,
@@ -48,7 +50,7 @@ const PropertyCard = ({ property }) => {
     return labels[type] || type;
   };
 
-  const coverImage = images && images.length > 0 ? images[0] : '/placeholder-property.jpg';
+  const coverImage = images && images.length > 0 ? images[0] : DEFAULT_NO_IMAGE_URL;
   const topAmenities = amenities ? amenities.slice(0, 3) : [];
 
   return (

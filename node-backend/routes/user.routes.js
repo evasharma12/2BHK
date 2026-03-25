@@ -9,6 +9,8 @@ router.put('/:id', authMiddleware, UserController.updateProfile);
 
 // Update primary phone number
 router.put('/:id/phone', authMiddleware, UserController.updatePhone);
+router.get('/:id/phone/verification-status', authMiddleware, UserController.getPhoneVerificationStatus);
+router.post('/:id/phone/verify-otp', authMiddleware, UserController.verifyPhoneOtp);
 
 // Saved properties (renters/buyers) - auth required, user can only access own
 router.get('/:id/saved-properties', authMiddleware, UserController.getSavedProperties);

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './ImageGallery.css';
 
+const DEFAULT_NO_IMAGE_URL = 'https://skhcn.hatinh.gov.vn/storage/images1685430_4.jpg';
+
 const ImageGallery = ({ images }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -13,6 +15,7 @@ const ImageGallery = ({ images }) => {
           <circle cx="8.5" cy="8.5" r="1.5"/>
           <polyline points="21 15 16 10 5 21"/>
         </svg>
+        <img src={DEFAULT_NO_IMAGE_URL} alt="No images available" className="image-gallery-placeholder-image" />
         <p>No images available</p>
       </div>
     );
