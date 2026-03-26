@@ -36,7 +36,8 @@ const PropertyDetailPage = () => {
       propertyFor: p.property_for,
       propertyType: p.property_type,
       bhk: p.bhk_type,
-      address: p.address,
+      // Backend stores address details in address_text.
+      address: p.address_text || '',
       locality: p.locality,
       city: p.city,
       state: p.state,
@@ -218,7 +219,8 @@ const PropertyDetailPage = () => {
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
-              {property.address}, {property.locality}, {property.city} - {property.pincode}
+              {[property.address, property.locality, property.city].filter(Boolean).join(', ')}
+              {property.pincode ? ` - ${property.pincode}` : ''}
             </div>
           </div>
           <div className="header-price">
