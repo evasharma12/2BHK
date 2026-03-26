@@ -13,6 +13,7 @@ const PropertiesListPage = () => {
   const [properties, setProperties] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [mobileResultsView, setMobileResultsView] = useState('list');
   const filtersWrapRef = useRef(null);
 
   useEffect(() => {
@@ -83,6 +84,8 @@ const PropertiesListPage = () => {
           furnishing: p.furnishing,
           images: p.cover_image ? [p.cover_image] : [],
           amenities: [],
+          lat: Number(p.lat),
+          lng: Number(p.lng),
         }));
         setProperties(backendProps);
       } catch (err) {
@@ -132,6 +135,19 @@ const PropertiesListPage = () => {
   };
 
   const sortBy = searchParams.get('sort') || 'newest';
+  const mapEmbedUrl = useMemo(() => {
+    const lat = Number(searchParams.get('lat'));
+    const lng = Number(searchParams.get('lng'));
+    const location = searchParams.get('location');
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return `https://maps.google.com/maps?q=${lat},${lng}&z=13&output=embed`;
+    }
+    if (location) {
+      return `https://maps.google.com/maps?q=${encodeURIComponent(location)}&z=12&output=embed`;
+    }
+    return 'https://maps.google.com/maps?q=India&z=4&output=embed';
+  }, [searchParams]);
+
   const activeFilterCount = [
     filters.propertyFor && filters.propertyFor !== 'all',
     filters.bhk,
@@ -215,10 +231,47 @@ const PropertiesListPage = () => {
           </div>
         </div>
 
-        <div className="properties-layout">
+        <div className={`properties-layout ${properties.length === 0 ? 'properties-layout--list-only' : ''}`}>
+          {properties.length > 0 && (
+            <>
+              <div className="mobile-results-toggle" role="tablist" aria-label="Results view toggle">
+                <button
+                  type="button"
+                  className={`mobile-results-toggle-btn ${mobileResultsView === 'map' ? 'mobile-results-toggle-btn--active' : ''}`}
+                  onClick={() => setMobileResultsView('map')}
+                  role="tab"
+                  aria-selected={mobileResultsView === 'map'}
+                >
+                  Map Results
+                </button>
+                <button
+                  type="button"
+                  className={`mobile-results-toggle-btn ${mobileResultsView === 'list' ? 'mobile-results-toggle-btn--active' : ''}`}
+                  onClick={() => setMobileResultsView('list')}
+                  role="tab"
+                  aria-selected={mobileResultsView === 'list'}
+                >
+                  List Results
+                </button>
+              </div>
+
+              <aside className={`properties-map-pane ${mobileResultsView === 'list' ? 'properties-map-pane--mobile-hidden' : ''}`}>
+                <div className="properties-map-shell">
+                  <iframe
+                    title="Property results map"
+                    src={mapEmbedUrl}
+                    className="properties-map-iframe"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              </aside>
+            </>
+          )}
+
           <main className="properties-main">
             {properties.length > 0 ? (
-              <div className="properties-grid">
+              <div className={`properties-grid ${mobileResultsView === 'map' ? 'properties-grid--mobile-hidden' : ''}`}>
                 {properties.map((property) => (
                   <PropertyCard key={property.id} property={property} />
                 ))}
