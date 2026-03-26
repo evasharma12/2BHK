@@ -325,6 +325,10 @@
   border-radius: 8px;
 }
 
+.address-map-actions {
+  margin-top: 0.75rem;
+}
+
 .price-words {
   font-size: 0.875rem;
   color: #2563eb;

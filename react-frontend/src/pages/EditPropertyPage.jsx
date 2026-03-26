@@ -11,10 +11,13 @@ const mapBackendToFormData = (p) => {
     propertyType: p.property_type,
     bhk: p.bhk_type,
     address: p.address_text || '',
+    addressPlaceId:
+      p.address_text && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng))
+        ? '__existing__'
+        : '',
     addressText: p.address_text || '',
     latitude: p.lat ?? '',
     longitude: p.lng ?? '',
-    locationConfirmed: Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)),
     locality: p.locality || '',
     city: p.city || '',
     pincode: p.pincode || '',

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader } from '@googlemaps/js-api-loader';
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import PropertyCard from '../components/PropertyCard';
 import { api } from '../utils/api';
@@ -34,6 +34,7 @@ const PropertiesListPage = () => {
   const idleDebounceRef = useRef(null);
 
   const mapApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+  const mapApiKeySuffix = mapApiKey ? mapApiKey.slice(-6) : '';
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -212,16 +213,26 @@ const PropertiesListPage = () => {
   }, [properties, selectedMapProperty]);
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(
+        '[Maps Debug] keyPresent=%s keySuffix=%s',
+        Boolean(mapApiKey),
+        mapApiKeySuffix || '(missing)'
+      );
+    }
     if (!mapContainerRef.current || !mapApiKey) return undefined;
     let mounted = true;
-    const loader = new Loader({
+    setOptions({
       apiKey: mapApiKey,
       version: 'weekly',
     });
 
     const initMap = async () => {
       try {
-        const { Map } = await loader.importLibrary('maps');
+        if (process.env.NODE_ENV !== 'production') {
+          console.info('[Maps Debug] Initializing map library...');
+        }
+        const { Map } = await importLibrary('maps');
         if (!mounted || mapInstanceRef.current) return;
         const map = new Map(mapContainerRef.current, {
           center: mapCenter,
@@ -235,6 +246,9 @@ const PropertiesListPage = () => {
         googleRef.current = window.google;
         setMapReady(true);
         setMapError('');
+        if (process.env.NODE_ENV !== 'production') {
+          console.info('[Maps Debug] Map initialized successfully.');
+        }
 
         idleListenerRef.current = map.addListener('idle', () => {
           if (idleDebounceRef.current) {
@@ -259,6 +273,9 @@ const PropertiesListPage = () => {
       } catch (err) {
         if (!mounted) return;
         console.error('Failed to initialize Google Maps:', err);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[Maps Debug] Initialization error details:', err);
+        }
         setMapError('Unable to load map right now. Please check your map API key.');
       }
     };
@@ -273,7 +290,7 @@ const PropertiesListPage = () => {
         idleListenerRef.current = null;
       }
     };
-  }, [mapApiKey, mapCenter, searchParams]);
+  }, [mapApiKey, mapApiKeySuffix, mapCenter, searchParams]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;

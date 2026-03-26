@@ -14,10 +14,10 @@ const defaultFormData = {
   propertyType: '',
   bhk: '',
   address: '',
+  addressPlaceId: '',
   addressText: '',
   latitude: '',
   longitude: '',
-  locationConfirmed: false,
   locality: '',
   city: '',
   pincode: '',
@@ -82,13 +82,13 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
 
     const lat = Number(formData.latitude);
     const lng = Number(formData.longitude);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setError('Select a location from map suggestions to set coordinates.');
+    if (!String(formData.addressPlaceId || '').trim()) {
+      setError('Choose a valid property address from the dropdown suggestions.');
       return false;
     }
 
-    if (!formData.locationConfirmed) {
-      setError('Confirm the map location before continuing.');
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setError('Choose a valid property address from the dropdown to set coordinates.');
       return false;
     }
 

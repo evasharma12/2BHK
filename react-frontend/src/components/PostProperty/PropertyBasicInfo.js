@@ -12,7 +12,6 @@ const PropertyBasicInfo = ({
   const [isAddressLoading, setIsAddressLoading] = useState(false);
   const [addressError, setAddressError] = useState('');
   const [mapLocation, setMapLocation] = useState(null);
-  const [selectedPlaceId, setSelectedPlaceId] = useState('');
   const addressWrapRef = useRef(null);
 
   const mapEmbedUrl = useMemo(() => {
@@ -87,7 +86,6 @@ const PropertyBasicInfo = ({
       pincode: pincode || formData.pincode,
       latitude: geo.location?.lat ?? '',
       longitude: geo.location?.lng ?? '',
-      locationConfirmed: false,
     });
     if (geo.location?.lat && geo.location?.lng) {
       setMapLocation({ lat: geo.location.lat, lng: geo.location.lng });
@@ -96,8 +94,10 @@ const PropertyBasicInfo = ({
 
   const handleAddressSuggestionSelect = async (suggestion) => {
     setShowAddressSuggestions(false);
-    setSelectedPlaceId(suggestion.place_id || '');
-    updateFormData('address', suggestion.description || '');
+    updateMultipleFields({
+      address: suggestion.description || '',
+      addressPlaceId: suggestion.place_id || '',
+    });
     setAddressError('');
 
     if (!suggestion.place_id) return;
@@ -106,18 +106,6 @@ const PropertyBasicInfo = ({
       applyGeocodeResultToForm(geo, suggestion.description);
     } catch (err) {
       setAddressError(err.message || 'Failed to locate selected address');
-    }
-  };
-
-  const handleAddressBlur = async () => {
-    const query = (formData.address || '').trim();
-    if (!query || selectedPlaceId) return;
-
-    try {
-      const geo = await api.geocodeAddress({ address: query });
-      applyGeocodeResultToForm(geo, query);
-    } catch {
-      // Do not block form entry; only skip map update when geocode fails.
     }
   };
 
@@ -206,19 +194,17 @@ const PropertyBasicInfo = ({
             placeholder="Building name, street address"
             value={formData.address}
             onChange={(e) => {
-              setSelectedPlaceId('');
               updateMultipleFields({
                 address: e.target.value,
+                addressPlaceId: '',
                 latitude: '',
                 longitude: '',
-                locationConfirmed: false,
               });
               setMapLocation(null);
             }}
             onFocus={() => {
               if (addressSuggestions.length > 0) setShowAddressSuggestions(true);
             }}
-            onBlur={handleAddressBlur}
             autoComplete="off"
             required
           />
@@ -253,9 +239,9 @@ const PropertyBasicInfo = ({
 
       <div className="form-field form-field--full">
         <label className="field-label">Select Location on Map*</label>
-        <div className="address-map-preview">
-          {mapEmbedUrl ? (
-            <>
+        {mapEmbedUrl ? (
+          <>
+            <div className="address-map-preview">
               <iframe
                 title="Property location preview"
                 src={mapEmbedUrl}
@@ -263,31 +249,25 @@ const PropertyBasicInfo = ({
                 referrerPolicy="no-referrer-when-downgrade"
                 className="address-map-iframe"
               />
-              <button
-                type="button"
-                className="nav-btn nav-btn--primary"
-                onClick={() => updateFormData('locationConfirmed', true)}
-                style={{ marginTop: '0.75rem' }}
-              >
-                {formData.locationConfirmed ? 'Location Confirmed' : 'Use This Map Location'}
-              </button>
-              {(formData.latitude && formData.longitude) && (
-                <p className="field-hint">
-                  Coordinates: {Number(formData.latitude).toFixed(6)}, {Number(formData.longitude).toFixed(6)}
-                </p>
-              )}
-              {mapValidationError && (
-                <div className="field-error" role="alert" style={{ marginTop: '0.5rem' }}>
-                  {mapValidationError}
-                </div>
-              )}
-            </>
-          ) : (
+            </div>
+            {(formData.latitude && formData.longitude) && (
+              <p className="field-hint">
+                Coordinates: {Number(formData.latitude).toFixed(6)}, {Number(formData.longitude).toFixed(6)}
+              </p>
+            )}
+            {mapValidationError && (
+              <div className="field-error" role="alert" style={{ marginTop: '0.5rem' }}>
+                {mapValidationError}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="address-map-preview">
             <p className="field-hint">
-              Select an address suggestion to load and confirm map coordinates.
+              Select a property address from dropdown suggestions to load coordinates.
             </p>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="form-field form-field--full">
