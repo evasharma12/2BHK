@@ -4,6 +4,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
+const http = require('http');
+const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 // Import database connection
@@ -16,6 +19,10 @@ const userRoutes = require('./routes/user.routes');
 const amenityRoutes = require('./routes/amenity.routes');
 const mapsRoutes = require('./routes/maps.routes');
 const chatRoutes = require('./routes/chat.routes');
+const ChatThread = require('./models/chatThread.model');
+const ChatMessage = require('./models/chatMessage.model');
+const { emitNewMessage, emitReadReceipt } = require('./services/chatRealtime.service');
+const { setIO, userRoom, threadRoom } = require('./services/socket.service');
 
 // Initialize Express app
 const app = express();
@@ -43,6 +50,130 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin(origin, cb) {
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  },
+});
+setIO(io);
+
+function parsePositiveInt(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.floor(parsed);
+}
+
+function getTokenFromSocketHandshake(socket) {
+  const authToken = socket.handshake?.auth?.token;
+  if (authToken && typeof authToken === 'string') {
+    return authToken.startsWith('Bearer ') ? authToken.split(' ')[1] : authToken;
+  }
+
+  const authHeader = socket.handshake?.headers?.authorization;
+  if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    return authHeader.split(' ')[1];
+  }
+
+  const queryToken = socket.handshake?.query?.token;
+  if (queryToken && typeof queryToken === 'string') {
+    return queryToken.startsWith('Bearer ') ? queryToken.split(' ')[1] : queryToken;
+  }
+
+  return null;
+}
+
+io.use((socket, next) => {
+  try {
+    const token = getTokenFromSocketHandshake(socket);
+    if (!token) {
+      return next(new Error('Unauthorized: token missing'));
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    if (!decoded?.user_id) {
+      return next(new Error('Unauthorized: invalid token payload'));
+    }
+    socket.user = decoded;
+    return next();
+  } catch (error) {
+    return next(new Error('Unauthorized: invalid or expired token'));
+  }
+});
+
+io.on('connection', (socket) => {
+  const currentUserId = socket.user.user_id;
+  socket.join(userRoom(currentUserId));
+
+  socket.on('chat:join_thread', async (payload = {}, ack) => {
+    try {
+      const threadId = parsePositiveInt(payload.thread_id);
+      if (!threadId) throw new Error('thread_id must be a positive integer');
+
+      const thread = await ChatThread.findByIdForUser(threadId, currentUserId);
+      if (!thread) throw new Error('Not authorized for this thread');
+
+      socket.join(threadRoom(threadId));
+      if (typeof ack === 'function') ack({ success: true, data: { thread_id: threadId } });
+    } catch (error) {
+      if (typeof ack === 'function') ack({ success: false, message: error.message });
+    }
+  });
+
+  socket.on('chat:leave_thread', (payload = {}, ack) => {
+    const threadId = parsePositiveInt(payload.thread_id);
+    if (!threadId) {
+      if (typeof ack === 'function') ack({ success: false, message: 'thread_id must be a positive integer' });
+      return;
+    }
+    socket.leave(threadRoom(threadId));
+    if (typeof ack === 'function') ack({ success: true, data: { thread_id: threadId } });
+  });
+
+  socket.on('chat:send_message', async (payload = {}, ack) => {
+    try {
+      const threadId = parsePositiveInt(payload.thread_id);
+      const messageText = String(payload.message_text || '').trim();
+      const messageType = payload.message_type || 'text';
+
+      if (!threadId) throw new Error('thread_id must be a positive integer');
+      if (!messageText) throw new Error('message_text is required');
+      if (messageType !== 'text') throw new Error('Unsupported message_type');
+
+      const thread = await ChatThread.findByIdForUser(threadId, currentUserId);
+      if (!thread) throw new Error('Not authorized for this thread');
+
+      const messageId = await ChatMessage.create(threadId, currentUserId, messageText, messageType);
+      const message = await ChatMessage.findById(messageId);
+      emitNewMessage(thread, message);
+
+      if (typeof ack === 'function') ack({ success: true, data: message });
+    } catch (error) {
+      if (typeof ack === 'function') ack({ success: false, message: error.message || 'Failed to send message' });
+    }
+  });
+
+  socket.on('chat:mark_read', async (payload = {}, ack) => {
+    try {
+      const threadId = parsePositiveInt(payload.thread_id);
+      if (!threadId) throw new Error('thread_id must be a positive integer');
+
+      const thread = await ChatThread.findByIdForUser(threadId, currentUserId);
+      if (!thread) throw new Error('Not authorized for this thread');
+
+      const markedCount = await ChatMessage.markThreadReadByUser(threadId, currentUserId);
+      emitReadReceipt(thread, currentUserId, markedCount);
+
+      if (typeof ack === 'function') ack({ success: true, data: { thread_id: threadId, marked_count: markedCount } });
+    } catch (error) {
+      if (typeof ack === 'function') ack({ success: false, message: error.message || 'Failed to mark read' });
+    }
+  });
+});
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -157,7 +288,7 @@ async function startServer() {
     }
     
     // Start server - bind to 0.0.0.0 so Railway/proxy can reach the app
-    app.listen(PORT, '0.0.0.0', () => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`
 ╔════════════════════════════════════════╗
 ║   2BHK API Server                  ║

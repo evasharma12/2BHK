@@ -1,5 +1,6 @@
 const ChatThread = require('../models/chatThread.model');
 const ChatMessage = require('../models/chatMessage.model');
+const { emitNewMessage, emitReadReceipt } = require('../services/chatRealtime.service');
 
 function parsePositiveInt(value) {
   const parsed = Number(value);
@@ -168,6 +169,7 @@ class ChatController {
 
       const messageId = await ChatMessage.create(threadId, currentUserId, messageText, messageType);
       const message = await ChatMessage.findById(messageId);
+      emitNewMessage(thread, message);
 
       return res.status(201).json({
         success: true,
@@ -209,6 +211,7 @@ class ChatController {
       }
 
       const markedCount = await ChatMessage.markThreadReadByUser(threadId, currentUserId);
+      emitReadReceipt(thread, currentUserId, markedCount);
 
       return res.json({
         success: true,
