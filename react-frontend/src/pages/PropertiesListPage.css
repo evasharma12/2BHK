@@ -238,10 +238,76 @@
   background: #fff;
 }
 
-.properties-map-iframe {
+.properties-map-canvas {
   width: 100%;
   height: 100%;
-  border: 0;
+}
+
+.properties-map-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.95);
+  z-index: 2;
+}
+
+.properties-map-banner {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 3;
+  background: rgba(30, 41, 59, 0.85);
+  color: #f8fafc;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.properties-map-preview {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 3;
+  background: #fff;
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+.properties-map-preview h4 {
+  margin: 0 0 0.2rem;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.properties-map-preview p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.82rem;
+}
+
+.properties-map-preview-price {
+  margin-top: 0.25rem !important;
+  font-weight: 700;
+  color: #0f172a !important;
+}
+
+.properties-map-preview a {
+  display: inline-block;
+  margin-top: 0.4rem;
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.82rem;
 }
 
 .mobile-results-toggle {

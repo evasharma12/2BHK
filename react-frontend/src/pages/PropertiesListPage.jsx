@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Loader } from '@googlemaps/js-api-loader';
+import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import PropertyCard from '../components/PropertyCard';
 import { api } from '../utils/api';
 import PropertyFilters from '../components/PropertyFilters';
@@ -7,6 +9,10 @@ import './PropertiesListPage.css';
 
 // Map UI sort to backend sort param (stable reference for useMemo deps)
 const SORT_TO_BACKEND = { newest: 'newest', 'price-low': 'price_asc', 'price-high': 'price_desc', 'area-high': 'area_desc' };
+const MAP_MARKER_CAP = 300;
+const MARKER_EMPHASIS_ZOOM = 13;
+const MAP_INTERACTION_DEBOUNCE_MS = 300;
+const INDIA_CENTER = { lat: 20.5937, lng: 78.9629 };
 
 const PropertiesListPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -14,7 +20,20 @@ const PropertiesListPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mobileResultsView, setMobileResultsView] = useState('list');
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState('');
+  const [mapViewport, setMapViewport] = useState(null);
+  const [selectedMapProperty, setSelectedMapProperty] = useState(null);
   const filtersWrapRef = useRef(null);
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const googleRef = useRef(null);
+  const markerClustererRef = useRef(null);
+  const mapMarkersRef = useRef([]);
+  const idleListenerRef = useRef(null);
+  const idleDebounceRef = useRef(null);
+
+  const mapApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -135,18 +154,45 @@ const PropertiesListPage = () => {
   };
 
   const sortBy = searchParams.get('sort') || 'newest';
-  const mapEmbedUrl = useMemo(() => {
+  const mapCenter = useMemo(() => {
     const lat = Number(searchParams.get('lat'));
     const lng = Number(searchParams.get('lng'));
-    const location = searchParams.get('location');
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      return `https://maps.google.com/maps?q=${lat},${lng}&z=13&output=embed`;
+      return { lat, lng };
     }
-    if (location) {
-      return `https://maps.google.com/maps?q=${encodeURIComponent(location)}&z=12&output=embed`;
+    const firstWithCoordinates = properties.find((property) => Number.isFinite(property.lat) && Number.isFinite(property.lng));
+    if (firstWithCoordinates) {
+      return { lat: firstWithCoordinates.lat, lng: firstWithCoordinates.lng };
     }
-    return 'https://maps.google.com/maps?q=India&z=4&output=embed';
-  }, [searchParams]);
+    return INDIA_CENTER;
+  }, [properties, searchParams]);
+
+  const mappableProperties = useMemo(
+    () => properties.filter((property) => Number.isFinite(property.lat) && Number.isFinite(property.lng)),
+    [properties]
+  );
+
+  const viewportMappableProperties = useMemo(() => {
+    if (!mapViewport?.bounds) return mappableProperties;
+    const { north, south, east, west } = mapViewport.bounds;
+    const latPadding = (north - south) * 0.15;
+    const lngPadding = (east - west) * 0.15;
+    const paddedNorth = north + latPadding;
+    const paddedSouth = south - latPadding;
+    const paddedEast = east + lngPadding;
+    const paddedWest = west - lngPadding;
+    return mappableProperties.filter((property) => {
+      const withinLat = property.lat <= paddedNorth && property.lat >= paddedSouth;
+      const withinLng = property.lng <= paddedEast && property.lng >= paddedWest;
+      return withinLat && withinLng;
+    });
+  }, [mappableProperties, mapViewport]);
+
+  const markerCapReached = viewportMappableProperties.length > MAP_MARKER_CAP;
+  const mapRenderProperties = useMemo(
+    () => viewportMappableProperties.slice(0, MAP_MARKER_CAP),
+    [viewportMappableProperties]
+  );
 
   const activeFilterCount = [
     filters.propertyFor && filters.propertyFor !== 'all',
@@ -158,6 +204,120 @@ const PropertiesListPage = () => {
     filters.location,
     filters.radiusKm && filters.radiusKm !== '10',
   ].filter(Boolean).length;
+
+  useEffect(() => {
+    if (!properties.some((property) => property.id === selectedMapProperty?.id)) {
+      setSelectedMapProperty(null);
+    }
+  }, [properties, selectedMapProperty]);
+
+  useEffect(() => {
+    if (!mapContainerRef.current || !mapApiKey) return undefined;
+    let mounted = true;
+    const loader = new Loader({
+      apiKey: mapApiKey,
+      version: 'weekly',
+    });
+
+    const initMap = async () => {
+      try {
+        const { Map } = await loader.importLibrary('maps');
+        if (!mounted || mapInstanceRef.current) return;
+        const map = new Map(mapContainerRef.current, {
+          center: mapCenter,
+          zoom: Number.isFinite(Number(searchParams.get('lat'))) ? MARKER_EMPHASIS_ZOOM : 11,
+          streetViewControl: false,
+          fullscreenControl: false,
+          mapTypeControl: false,
+          gestureHandling: 'greedy',
+        });
+        mapInstanceRef.current = map;
+        googleRef.current = window.google;
+        setMapReady(true);
+        setMapError('');
+
+        idleListenerRef.current = map.addListener('idle', () => {
+          if (idleDebounceRef.current) {
+            window.clearTimeout(idleDebounceRef.current);
+          }
+          idleDebounceRef.current = window.setTimeout(() => {
+            const bounds = map.getBounds();
+            if (!bounds) return;
+            const northEast = bounds.getNorthEast();
+            const southWest = bounds.getSouthWest();
+            setMapViewport({
+              zoom: map.getZoom() || 0,
+              bounds: {
+                north: northEast.lat(),
+                east: northEast.lng(),
+                south: southWest.lat(),
+                west: southWest.lng(),
+              },
+            });
+          }, MAP_INTERACTION_DEBOUNCE_MS);
+        });
+      } catch (err) {
+        if (!mounted) return;
+        console.error('Failed to initialize Google Maps:', err);
+        setMapError('Unable to load map right now. Please check your map API key.');
+      }
+    };
+
+    initMap();
+
+    return () => {
+      mounted = false;
+      if (idleDebounceRef.current) window.clearTimeout(idleDebounceRef.current);
+      if (idleListenerRef.current) {
+        idleListenerRef.current.remove();
+        idleListenerRef.current = null;
+      }
+    };
+  }, [mapApiKey, mapCenter, searchParams]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    map.panTo(mapCenter);
+  }, [mapCenter]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const googleMaps = googleRef.current;
+    if (!map || !googleMaps) return;
+
+    mapMarkersRef.current.forEach((marker) => marker.setMap(null));
+    mapMarkersRef.current = [];
+    if (markerClustererRef.current) {
+      markerClustererRef.current.clearMarkers();
+    }
+
+    const currentZoom = mapViewport?.zoom ?? map.getZoom() ?? 0;
+    const emphasizeMarkers = currentZoom >= MARKER_EMPHASIS_ZOOM;
+
+    const nextMarkers = mapRenderProperties.map((property) => {
+      const marker = new googleMaps.maps.Marker({
+        position: { lat: property.lat, lng: property.lng },
+        title: `${property.bhk} BHK ${property.propertyType || 'Property'}`,
+        icon: {
+          path: googleMaps.maps.SymbolPath.CIRCLE,
+          scale: emphasizeMarkers ? 8 : 5,
+          fillColor: emphasizeMarkers ? '#1d4ed8' : '#2563eb',
+          fillOpacity: 0.95,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+        },
+      });
+      marker.addListener('click', () => setSelectedMapProperty(property));
+      return marker;
+    });
+
+    markerClustererRef.current = new MarkerClusterer({
+      markers: nextMarkers,
+      map,
+    });
+    mapMarkersRef.current = nextMarkers;
+  }, [mapRenderProperties, mapViewport]);
 
   if (isLoading) {
     return (
@@ -257,13 +417,38 @@ const PropertiesListPage = () => {
 
               <aside className={`properties-map-pane ${mobileResultsView === 'list' ? 'properties-map-pane--mobile-hidden' : ''}`}>
                 <div className="properties-map-shell">
-                  <iframe
-                    title="Property results map"
-                    src={mapEmbedUrl}
-                    className="properties-map-iframe"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
+                  {!mapApiKey ? (
+                    <div className="properties-map-state">
+                      <p>Map unavailable: set `REACT_APP_GOOGLE_MAPS_API_KEY` to enable map results.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div ref={mapContainerRef} className="properties-map-canvas" />
+                      {!mapReady && !mapError && (
+                        <div className="properties-map-state">
+                          <p>Loading map...</p>
+                        </div>
+                      )}
+                      {mapError && (
+                        <div className="properties-map-state">
+                          <p>{mapError}</p>
+                        </div>
+                      )}
+                      {markerCapReached && (
+                        <div className="properties-map-banner">
+                          Showing first {MAP_MARKER_CAP} properties in this area. Zoom in to see more.
+                        </div>
+                      )}
+                      {selectedMapProperty && (
+                        <div className="properties-map-preview">
+                          <h4>{selectedMapProperty.bhk} BHK {selectedMapProperty.propertyType || 'Property'}</h4>
+                          <p>{selectedMapProperty.locality}, {selectedMapProperty.city}</p>
+                          <p className="properties-map-preview-price">INR {Number(selectedMapProperty.expectedPrice || 0).toLocaleString('en-IN')}</p>
+                          <a href={`/properties/${selectedMapProperty.id}`}>View details</a>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </aside>
             </>
