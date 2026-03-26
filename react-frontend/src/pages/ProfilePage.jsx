@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ProfileHeader from '../components/Profile/ProfileHeader';
 import ProfileTabs from '../components/Profile/ProfileTabs';
-import SavedProperties, { MyListings, MyInquiries } from '../components/Profile/SavedProperties';
+import SavedProperties, { MyListings } from '../components/Profile/SavedProperties';
+import ChatList from '../components/Chat/ChatList';
 import EditProfileModal from '../components/Profile/EditProfileModal';
 import { api } from '../utils/api';
 import './ProfilePage.css';
@@ -38,11 +39,11 @@ const ProfilePage = () => {
           localStorage.setItem('user', JSON.stringify(freshUser));
           setActiveTab((prev) => {
             if (isOwnerType(freshUser.user_type)) {
-              return prev === 'saved' || prev === 'inquiries' || prev === 'listings'
+              return prev === 'saved' || prev === 'chats' || prev === 'listings'
                 ? prev
                 : 'listings';
             }
-            return prev === 'saved' || prev === 'inquiries' ? prev : 'saved';
+            return prev === 'saved' || prev === 'chats' ? prev : 'saved';
           });
         }
       } catch (err) {
@@ -69,14 +70,14 @@ const ProfilePage = () => {
     if (isOwnerType(userType)) {
       return [
         { id: 'listings',  label: 'Listed Properties', icon: '🏠', count: null },
-        { id: 'inquiries', label: 'Inquiries',         icon: '📬', count: null },
+        { id: 'chats', label: 'Chats', icon: '💬', count: null },
         { id: 'saved',     label: 'Saved Properties',  icon: '❤️', count: null },
       ];
     }
-    // Renters/buyers: Saved Properties and My Inquiries
+    // Renters/buyers: Saved Properties and Chats
     return [
-      { id: 'saved',     label: 'Saved Properties', icon: '❤️', count: null },
-      { id: 'inquiries', label: 'My Inquiries',      icon: '📬', count: null },
+      { id: 'saved', label: 'Saved Properties', icon: '❤️', count: null },
+      { id: 'chats', label: 'Chats', icon: '💬', count: null },
     ];
   };
 
@@ -119,7 +120,7 @@ const ProfilePage = () => {
           <div className="profile-page__content">
             {activeTab === 'saved'     && <SavedProperties   userId={user.user_id} />}
             {activeTab === 'listings'  && <MyListings        userId={user.user_id} />}
-            {activeTab === 'inquiries' && <MyInquiries       userId={user.user_id} userType={user.user_type} />}
+            {activeTab === 'chats' && <ChatList userType={user.user_type} />}
           </div>
         </div>
 
