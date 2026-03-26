@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { api } from '../../utils/api';
 import '../Profile/ProfileTabContent.css';
 
@@ -33,34 +34,80 @@ const getPropertyContext = (thread) => {
 };
 
 const ChatList = ({ userType }) => {
+  const location = useLocation();
   const [threads, setThreads] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedThreadId, setSelectedThreadId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [composerText, setComposerText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [chatError, setChatError] = useState('');
+
+  const selectedThread = useMemo(
+    () => threads.find((t) => Number(t.thread_id) === Number(selectedThreadId)) || null,
+    [threads, selectedThreadId]
+  );
+
+  const loadThreads = async () => {
+    try {
+      const response = await api.getChatThreads();
+      const list = Array.isArray(response?.data) ? response.data : [];
+      setThreads(list);
+      return list;
+    } catch (error) {
+      console.error('Failed to fetch chat threads:', error);
+      setThreads([]);
+      return [];
+    }
+  };
+
+  const loadMessages = async (threadId) => {
+    if (!threadId) return;
+    setMessagesLoading(true);
+    setChatError('');
+    try {
+      const response = await api.getChatThreadMessages(threadId, { limit: 50 });
+      setMessages(Array.isArray(response?.data) ? response.data : []);
+      await api.markChatThreadRead(threadId);
+      setThreads((prev) =>
+        prev.map((thread) =>
+          Number(thread.thread_id) === Number(threadId)
+            ? { ...thread, unread_count: 0 }
+            : thread
+        )
+      );
+    } catch (error) {
+      console.error('Failed to fetch chat messages:', error);
+      setMessages([]);
+      setChatError(error?.message || 'Failed to load messages.');
+    } finally {
+      setMessagesLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
-
-    const loadThreads = async () => {
+    const initialThreadId = Number(location?.state?.selectedThreadId) || null;
+    const bootstrap = async () => {
       setIsLoading(true);
-      try {
-        const response = await api.getChatThreads();
-        if (!cancelled) {
-          setThreads(Array.isArray(response?.data) ? response.data : []);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.error('Failed to fetch chat threads:', error);
-          setThreads([]);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
+      const list = await loadThreads();
+      if (cancelled) return;
+      const firstThreadId = list.length > 0 ? list[0].thread_id : null;
+      const pickThreadId = initialThreadId || firstThreadId || null;
+      setSelectedThreadId(pickThreadId);
+      setIsLoading(false);
+      if (pickThreadId) {
+        loadMessages(pickThreadId);
       }
     };
 
-    loadThreads();
+    bootstrap();
     return () => {
       cancelled = true;
     };
-  }, []);
+    // include state so "Start Chat" can pre-select a thread
+  }, [location?.state?.selectedThreadId]);
 
   const title = useMemo(
     () => (isOwnerType(userType) ? 'Chats for Your Properties' : 'My Chats'),
@@ -111,36 +158,155 @@ const ChatList = ({ userType }) => {
         <span className="tab-section__count">{threads.length} active</span>
       </div>
 
-      <div className="chat-thread-list">
-        {threads.map((thread) => (
-          <div key={thread.thread_id} className="chat-thread-card">
-            <div className="chat-thread-card__main">
-              <div className="chat-thread-card__top">
-                <span className="chat-thread-card__name">{thread.other_user_name || 'User'}</span>
-                <span className="chat-thread-card__time">
-                  {formatLastMessageTime(thread.last_message_at || thread.updated_at || thread.created_at)}
-                </span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.35fr', gap: '1rem' }}>
+        <div className="chat-thread-list">
+          {threads.map((thread) => (
+            <button
+              key={thread.thread_id}
+              type="button"
+              className="chat-thread-card"
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                border:
+                  Number(thread.thread_id) === Number(selectedThreadId)
+                    ? '1px solid #3b82f6'
+                    : '1px solid transparent',
+              }}
+              onClick={() => {
+                setSelectedThreadId(thread.thread_id);
+                loadMessages(thread.thread_id);
+              }}
+            >
+              <div className="chat-thread-card__main">
+                <div className="chat-thread-card__top">
+                  <span className="chat-thread-card__name">{thread.other_user_name || 'User'}</span>
+                  <span className="chat-thread-card__time">
+                    {formatLastMessageTime(thread.last_message_at || thread.updated_at || thread.created_at)}
+                  </span>
+                </div>
+
+                <Link
+                  to={`/properties/${thread.property_id}`}
+                  className="chat-thread-card__property"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {getPropertyContext(thread)}
+                </Link>
+
+                <p className="chat-thread-card__message">
+                  {thread.last_message_text || 'No messages yet. Start the conversation.'}
+                </p>
               </div>
 
-              <Link
-                to={`/properties/${thread.property_id}`}
-                className="chat-thread-card__property"
+              <div className="chat-thread-card__side">
+                {Number(thread.unread_count) > 0 && (
+                  <span className="chat-thread-card__unread">{thread.unread_count}</span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div
+          style={{
+            border: '1px solid #e5e7eb',
+            borderRadius: 12,
+            background: '#fff',
+            minHeight: 420,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {selectedThread ? (
+            <>
+              <div style={{ padding: '0.9rem 1rem', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ fontWeight: 700 }}>{selectedThread.other_user_name || 'User'}</div>
+                <Link to={`/properties/${selectedThread.property_id}`} className="chat-thread-card__property">
+                  {getPropertyContext(selectedThread)}
+                </Link>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+                {messagesLoading ? (
+                  <p style={{ margin: 0, color: '#6b7280' }}>Loading messages...</p>
+                ) : messages.length === 0 ? (
+                  <p style={{ margin: 0, color: '#6b7280' }}>No messages yet. Start the conversation.</p>
+                ) : (
+                  messages.map((message) => {
+                    const currentUser = api.getUser();
+                    const mine = Number(message.sender_user_id) === Number(currentUser?.user_id);
+                    return (
+                      <div
+                        key={message.message_id}
+                        style={{
+                          marginBottom: 10,
+                          display: 'flex',
+                          justifyContent: mine ? 'flex-end' : 'flex-start',
+                        }}
+                      >
+                        <div
+                          style={{
+                            maxWidth: '75%',
+                            background: mine ? '#dbeafe' : '#f3f4f6',
+                            borderRadius: 10,
+                            padding: '0.5rem 0.65rem',
+                          }}
+                        >
+                          <div style={{ fontSize: 14, lineHeight: 1.35 }}>{message.message_text}</div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!selectedThreadId || !composerText.trim() || sending) return;
+                  setSending(true);
+                  setChatError('');
+                  try {
+                    await api.sendChatMessage(selectedThreadId, composerText.trim(), 'text');
+                    setComposerText('');
+                    await Promise.all([loadMessages(selectedThreadId), loadThreads()]);
+                  } catch (error) {
+                    setChatError(error?.message || 'Failed to send message.');
+                  } finally {
+                    setSending(false);
+                  }
+                }}
+                style={{ borderTop: '1px solid #f1f5f9', padding: '0.75rem', display: 'flex', gap: '0.5rem' }}
               >
-                {getPropertyContext(thread)}
-              </Link>
-
-              <p className="chat-thread-card__message">
-                {thread.last_message_text || 'No messages yet. Start the conversation.'}
-              </p>
-            </div>
-
-            <div className="chat-thread-card__side">
-              {Number(thread.unread_count) > 0 && (
-                <span className="chat-thread-card__unread">{thread.unread_count}</span>
-              )}
-            </div>
-          </div>
-        ))}
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={composerText}
+                  onChange={(e) => setComposerText(e.target.value)}
+                  style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: 8, padding: '0.55rem 0.65rem' }}
+                />
+                <button
+                  type="submit"
+                  disabled={sending || !composerText.trim()}
+                  style={{
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '0.55rem 0.9rem',
+                    background: '#2563eb',
+                    color: '#fff',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {sending ? 'Sending...' : 'Send'}
+                </button>
+              </form>
+              {chatError && <p style={{ margin: '0 0.8rem 0.8rem', color: '#dc2626' }}>{chatError}</p>}
+            </>
+          ) : (
+            <div style={{ padding: '1rem', color: '#6b7280' }}>Select a chat to start messaging.</div>
+          )}
+        </div>
       </div>
     </div>
   );

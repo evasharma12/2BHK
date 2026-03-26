@@ -9,6 +9,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
 
   const toggleMenu = useCallback((e) => {
     if (e) {
@@ -35,6 +36,39 @@ const Navbar = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let intervalId = null;
+
+    const loadUnreadChatCount = async () => {
+      if (!currentUser) {
+        if (!cancelled) setUnreadChatCount(0);
+        return;
+      }
+      try {
+        const response = await api.getChatThreads();
+        const threads = Array.isArray(response?.data) ? response.data : [];
+        const unread = threads.reduce((sum, thread) => {
+          const count = Number(thread?.unread_count);
+          return sum + (Number.isFinite(count) ? count : 0);
+        }, 0);
+        if (!cancelled) setUnreadChatCount(unread);
+      } catch (_) {
+        if (!cancelled) setUnreadChatCount(0);
+      }
+    };
+
+    loadUnreadChatCount();
+    if (currentUser) {
+      intervalId = window.setInterval(loadUnreadChatCount, 30000);
+    }
+
+    return () => {
+      cancelled = true;
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [currentUser]);
 
   const handleLogout = () => {
     api.clearAuthData();
@@ -108,7 +142,14 @@ const Navbar = () => {
                 className="navbar__profile-button navbar__action-item"
                 onClick={() => navigate('/profile')}
               >
-                <div className="navbar__profile-avatar">{initials}</div>
+                <div className="navbar__profile-avatar-wrap">
+                  <div className="navbar__profile-avatar">{initials}</div>
+                  {unreadChatCount > 0 && (
+                    <span className="navbar__chat-badge" aria-label={`${unreadChatCount} unread chat messages`}>
+                      {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                    </span>
+                  )}
+                </div>
                 <span className="navbar__profile-name">{currentUser.full_name || currentUser.email}</span>
               </button>
               <button type="button" className="navbar__button navbar__button--outline navbar__action-item" onClick={handleLogout}>
@@ -158,7 +199,14 @@ const Navbar = () => {
             {currentUser ? (
               <>
                 <button type="button" className="navbar__dropdown-item navbar__dropdown-item--profile" onClick={() => { closeMenu(); navigate('/profile'); }}>
-                  <div className="navbar__profile-avatar">{initials}</div>
+                  <div className="navbar__profile-avatar-wrap">
+                    <div className="navbar__profile-avatar">{initials}</div>
+                    {unreadChatCount > 0 && (
+                      <span className="navbar__chat-badge" aria-label={`${unreadChatCount} unread chat messages`}>
+                        {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                      </span>
+                    )}
+                  </div>
                   <span>Profile</span>
                 </button>
                 <button type="button" className="navbar__dropdown-item navbar__dropdown-item--logout" onClick={handleLogout}>
