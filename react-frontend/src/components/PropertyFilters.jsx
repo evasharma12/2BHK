@@ -10,6 +10,7 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
+  const [locationAssistError, setLocationAssistError] = useState('');
 
   useEffect(() => {
     setLocalMinPrice(filters.minPrice || '');
@@ -28,12 +29,18 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
 
     const timeoutId = setTimeout(async () => {
       setIsAddressLoading(true);
+      setLocationAssistError('');
       try {
         const suggestions = await api.getAddressSuggestions(query);
         setAddressSuggestions(suggestions);
         setShowAddressSuggestions(true);
-      } catch {
+      } catch (error) {
         setAddressSuggestions([]);
+        setShowAddressSuggestions(false);
+        setLocationAssistError(
+          error?.message ||
+            'Location suggestions unavailable right now. You can still search by typing location text.'
+        );
       } finally {
         setIsAddressLoading(false);
       }
@@ -68,8 +75,13 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
         lat: String(geo?.location?.lat ?? ''),
         lng: String(geo?.location?.lng ?? ''),
       });
-    } catch {
+      setLocationAssistError('');
+    } catch (error) {
       onFilterChange({ ...next, lat: '', lng: '' });
+      setLocationAssistError(
+        error?.message ||
+          'Could not pin exact coordinates. Search will continue using location text.'
+      );
     }
   };
 
@@ -83,8 +95,13 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
         lat: String(geo?.location?.lat ?? ''),
         lng: String(geo?.location?.lng ?? ''),
       });
-    } catch {
+      setLocationAssistError('');
+    } catch (error) {
       // Keep text location if geocoding fails.
+      setLocationAssistError(
+        error?.message ||
+          'Could not pin exact coordinates. Search will continue using location text.'
+      );
     }
   };
 
@@ -178,6 +195,7 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
             autoComplete="off"
           />
           {isAddressLoading && <div className="filter-location-status">Loading suggestions...</div>}
+          {locationAssistError && <div className="filter-location-status">{locationAssistError}</div>}
           {showAddressSuggestions && addressSuggestions.length > 0 && (
             <div className="filter-location-suggestions">
               {addressSuggestions.map((s) => (

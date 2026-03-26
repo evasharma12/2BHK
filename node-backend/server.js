@@ -129,8 +129,24 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+function validateStartupConfig() {
+  const warnings = [];
+  if (!process.env.GOOGLE_MAPS_API_KEY) {
+    warnings.push(
+      'GOOGLE_MAPS_API_KEY is not configured: /api/maps endpoints will return fallback errors and location autocomplete/geocode will be disabled.'
+    );
+  }
+  if (!process.env.FRONTEND_URL) {
+    warnings.push(
+      'FRONTEND_URL is not configured: default localhost origins are used for CORS.'
+    );
+  }
+  warnings.forEach((warning) => console.warn('Startup config warning:', warning));
+}
+
 async function startServer() {
   try {
+    validateStartupConfig();
     // Test database connection
     const dbConnected = await testConnection();
     

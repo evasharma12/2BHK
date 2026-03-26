@@ -1,3 +1,30 @@
+const GOOGLE_TIMEOUT_MS = 7000;
+
+function withTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { signal: controller.signal }).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
+
+function mapGoogleStatusToHttpStatus(googleStatus) {
+  switch (googleStatus) {
+    case 'ZERO_RESULTS':
+      return 200;
+    case 'INVALID_REQUEST':
+      return 400;
+    case 'REQUEST_DENIED':
+      return 502;
+    case 'OVER_QUERY_LIMIT':
+      return 429;
+    case 'UNKNOWN_ERROR':
+      return 503;
+    default:
+      return 502;
+  }
+}
+
 class MapsController {
   static async autocomplete(req, res) {
     try {
@@ -20,15 +47,19 @@ class MapsController {
         components: 'country:in',
       });
 
-      const googleRes = await fetch(
+      const googleRes = await withTimeout(
         `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params.toString()}`
+        ,
+        GOOGLE_TIMEOUT_MS
       );
       const googleData = await googleRes.json();
 
       if (googleData.status !== 'OK' && googleData.status !== 'ZERO_RESULTS') {
-        return res.status(400).json({
+        return res.status(mapGoogleStatusToHttpStatus(googleData.status)).json({
           success: false,
-          message: googleData.error_message || `Google autocomplete failed: ${googleData.status}`,
+          message:
+            googleData.error_message ||
+            `Google autocomplete unavailable (${googleData.status}). Try entering location text manually.`,
         });
       }
 
@@ -44,9 +75,15 @@ class MapsController {
       });
     } catch (error) {
       console.error('Maps autocomplete error:', error);
+      if (error?.name === 'AbortError') {
+        return res.status(504).json({
+          success: false,
+          message: 'Address suggestions timed out. Please try again or continue with manual location text.',
+        });
+      }
       return res.status(500).json({
         success: false,
-        message: 'Failed to fetch address suggestions',
+        message: 'Failed to fetch address suggestions. Please try again.',
       });
     }
   }
@@ -75,15 +112,19 @@ class MapsController {
       if (placeId) params.set('place_id', placeId);
       else params.set('address', address);
 
-      const googleRes = await fetch(
+      const googleRes = await withTimeout(
         `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`
+        ,
+        GOOGLE_TIMEOUT_MS
       );
       const googleData = await googleRes.json();
 
       if (googleData.status !== 'OK') {
-        return res.status(400).json({
+        return res.status(mapGoogleStatusToHttpStatus(googleData.status)).json({
           success: false,
-          message: googleData.error_message || `Google geocode failed: ${googleData.status}`,
+          message:
+            googleData.error_message ||
+            `Geocoding unavailable (${googleData.status}). You can still search by location text without map precision.`,
         });
       }
 
@@ -106,9 +147,15 @@ class MapsController {
       });
     } catch (error) {
       console.error('Maps geocode error:', error);
+      if (error?.name === 'AbortError') {
+        return res.status(504).json({
+          success: false,
+          message: 'Address lookup timed out. Please try again or continue with manual location text.',
+        });
+      }
       return res.status(500).json({
         success: false,
-        message: 'Failed to geocode address',
+        message: 'Failed to geocode address. Please try again.',
       });
     }
   }

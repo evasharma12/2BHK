@@ -12,6 +12,7 @@ const PropertySearchForm = () => {
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
+  const [locationAssistError, setLocationAssistError] = useState('');
   const [filters, setFilters] = useState({
     location: '',
     latitude: '',
@@ -41,12 +42,18 @@ const PropertySearchForm = () => {
 
     const timeoutId = setTimeout(async () => {
       setIsAddressLoading(true);
+      setLocationAssistError('');
       try {
         const suggestions = await api.getAddressSuggestions(query);
         setAddressSuggestions(suggestions);
         setShowAddressSuggestions(true);
-      } catch {
+      } catch (error) {
         setAddressSuggestions([]);
+        setShowAddressSuggestions(false);
+        setLocationAssistError(
+          error?.message ||
+            'Location suggestions unavailable right now. You can still search by typing location text.'
+        );
       } finally {
         setIsAddressLoading(false);
       }
@@ -64,9 +71,14 @@ const PropertySearchForm = () => {
       const geo = await api.geocodeAddress({ placeId: suggestion.place_id });
       handleFilterChange('latitude', String(geo?.location?.lat ?? ''));
       handleFilterChange('longitude', String(geo?.location?.lng ?? ''));
-    } catch {
+      setLocationAssistError('');
+    } catch (error) {
       handleFilterChange('latitude', '');
       handleFilterChange('longitude', '');
+      setLocationAssistError(
+        error?.message ||
+          'Could not pin exact coordinates. Search will continue using location text.'
+      );
     }
   };
 
@@ -78,8 +90,13 @@ const PropertySearchForm = () => {
       const geo = await api.geocodeAddress({ address: query });
       handleFilterChange('latitude', String(geo?.location?.lat ?? ''));
       handleFilterChange('longitude', String(geo?.location?.lng ?? ''));
-    } catch {
+      setLocationAssistError('');
+    } catch (error) {
       // Keep text-only location when geocoding fails.
+      setLocationAssistError(
+        error?.message ||
+          'Could not pin exact coordinates. Search will continue using location text.'
+      );
     }
   };
 
@@ -205,6 +222,9 @@ const PropertySearchForm = () => {
               />
               {isAddressLoading && (
                 <div className="search-location-status">Loading suggestions...</div>
+              )}
+              {locationAssistError && (
+                <div className="search-location-status">{locationAssistError}</div>
               )}
               {showAddressSuggestions && addressSuggestions.length > 0 && (
                 <div className="search-location-suggestions">

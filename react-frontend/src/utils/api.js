@@ -43,6 +43,19 @@ function handleFetchError(err, context) {
   return err;
 }
 
+function normalizeMapServiceError(err, fallbackMessage) {
+  const message = String(err?.message || '');
+  if (message.includes('Google Maps API key is not configured')) {
+    return new Error(
+      'Location suggestions are temporarily unavailable because map services are not configured. You can continue by typing location text manually.'
+    );
+  }
+  if (message.includes('OVER_QUERY_LIMIT')) {
+    return new Error('Location suggestions are currently rate limited. Please try again in a moment.');
+  }
+  return new Error(fallbackMessage);
+}
+
 async function parseJsonResponse(response) {
   const text = await response.text();
   try {
@@ -388,12 +401,18 @@ export const api = {
         }
       );
     } catch (err) {
-      throw handleFetchError(err, 'address autocomplete');
+      throw normalizeMapServiceError(
+        handleFetchError(err, 'address autocomplete'),
+        'Unable to load location suggestions right now. You can still search using manual location text.'
+      );
     }
 
     const data = await parseJsonResponse(response);
     if (!response.ok || !data.success) {
-      throw new Error(data.message || 'Failed to fetch address suggestions');
+      throw normalizeMapServiceError(
+        new Error(data.message || 'Failed to fetch address suggestions'),
+        'Unable to load location suggestions right now. You can still search using manual location text.'
+      );
     }
     return data.data?.predictions || [];
   },
@@ -416,12 +435,18 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
       });
     } catch (err) {
-      throw handleFetchError(err, 'address geocode');
+      throw normalizeMapServiceError(
+        handleFetchError(err, 'address geocode'),
+        'Unable to pinpoint map coordinates right now. Search will continue using location text.'
+      );
     }
 
     const data = await parseJsonResponse(response);
     if (!response.ok || !data.success) {
-      throw new Error(data.message || 'Failed to geocode address');
+      throw normalizeMapServiceError(
+        new Error(data.message || 'Failed to geocode address'),
+        'Unable to pinpoint map coordinates right now. Search will continue using location text.'
+      );
     }
     return data.data;
   },
