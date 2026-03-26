@@ -10,11 +10,12 @@ const Property = {
           property_for,
           property_type,
           bhk_type,
-          address,
+          address_text,
           locality,
           city,
           state,
           pincode,
+          location,
           built_up_area,
           carpet_area,
           total_floors,
@@ -33,7 +34,7 @@ const Property = {
           available_from
         )
         VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_SRID(POINT(0, 0), 4326), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
       `;
 
@@ -42,7 +43,7 @@ const Property = {
         property_for,
         property_type,
         bhk_type,
-        address,
+        address_text,
         locality,
         city,
         state,
@@ -72,7 +73,7 @@ const Property = {
           property_for,
           property_type,
           bhk_type,
-          address,
+          address_text,
           locality,
           city,
           state || null,
@@ -167,7 +168,7 @@ const Property = {
           p.property_for,
           p.property_type,
           p.bhk_type,
-          p.address,
+          p.address_text,
           p.locality,
           p.city,
           p.expected_price,
@@ -293,7 +294,8 @@ const Property = {
 
   async update(propertyId, ownerId, updateData) {
     const allowed = [
-      'property_for', 'property_type', 'bhk_type', 'address', 'locality', 'city', 'state', 'pincode',
+      'property_for', 'property_type', 'bhk_type', 'locality', 'city', 'state', 'pincode',
+      'address_text',
       'built_up_area', 'carpet_area', 'total_floors', 'floor_number', 'bedrooms', 'bathrooms', 'balconies',
       'property_age', 'furnishing', 'facing', 'expected_price', 'price_negotiable', 'maintenance_charges',
       'security_deposit', 'description', 'available_from',

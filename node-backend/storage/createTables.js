@@ -15,7 +15,24 @@ async function createDatabaseSchema() {
   let connection;
   
   try {
-    // Create connection
+    // Connect to MySQL server (without selecting a database) first.
+    // This avoids failures when the target DB doesn't exist yet.
+    const targetDb = dbConfig.database;
+    const serverConfig = { ...dbConfig, database: undefined };
+
+    connection = await mysql.createConnection(serverConfig);
+    console.log('Connected to MySQL server');
+
+    if (targetDb) {
+      await connection.execute(
+        `CREATE DATABASE IF NOT EXISTS \`${targetDb}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+      );
+      console.log(`✓ Ensured database exists: ${targetDb}`);
+    }
+
+    await connection.end();
+
+    // Re-connect with the target database selected, then create tables.
     connection = await mysql.createConnection(dbConfig);
     console.log('Connected to MySQL database');
 
@@ -58,6 +75,16 @@ async function createDatabaseSchema() {
     console.log('✓ Created user_phones table');
 
     // ============================================
+    // DESTRUCTIVE RESET FOR PROPERTY STACK (cutover)
+    // ============================================
+    // Drop dependent tables first so properties can be recreated safely.
+    await connection.execute('DROP TABLE IF EXISTS property_images');
+    await connection.execute('DROP TABLE IF EXISTS property_amenities');
+    await connection.execute('DROP TABLE IF EXISTS saved_properties');
+    await connection.execute('DROP TABLE IF EXISTS properties');
+    console.log('✓ Reset property tables for spatial cutover');
+
+    // ============================================
     // 3. PROPERTIES TABLE (Main table - optimized for filtering)
     // ============================================
     await connection.execute(`
@@ -71,11 +98,12 @@ async function createDatabaseSchema() {
         bhk_type VARCHAR(10) NOT NULL, -- '1', '2', '3', '4+', etc.
         
         -- Location
-        address TEXT NOT NULL,
+        address_text TEXT NULL,
         locality VARCHAR(255) NOT NULL,
         city VARCHAR(100) NOT NULL,
         state VARCHAR(100),
         pincode VARCHAR(10) NOT NULL,
+        location POINT NOT NULL SRID 4326,
         
         -- Property Details
         built_up_area INT NOT NULL, -- in sq ft
@@ -114,13 +142,13 @@ async function createDatabaseSchema() {
         
         -- CRITICAL INDEXES FOR FILTERING (Performance optimization)
         INDEX idx_property_for (property_for),
-        INDEX idx_city_locality (city, locality),
         INDEX idx_bhk_type (bhk_type),
         INDEX idx_property_type (property_type),
         INDEX idx_price (expected_price),
         INDEX idx_status (status),
         INDEX idx_created_at (created_at),
         INDEX idx_furnishing (furnishing),
+        SPATIAL INDEX idx_location (location),
         
         -- COMPOSITE INDEXES for common filter combinations
         INDEX idx_for_city_locality_bhk (property_for, city, locality, bhk_type),
