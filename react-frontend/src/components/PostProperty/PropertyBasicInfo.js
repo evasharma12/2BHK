@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../utils/api';
 
-const PropertyBasicInfo = ({ formData, updateFormData, updateMultipleFields }) => {
+const PropertyBasicInfo = ({
+  formData,
+  updateFormData,
+  updateMultipleFields,
+  mapValidationError = '',
+}) => {
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
@@ -24,6 +29,12 @@ const PropertyBasicInfo = ({ formData, updateFormData, updateMultipleFields }) =
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  useEffect(() => {
+    if (formData.latitude && formData.longitude) {
+      setMapLocation({ lat: Number(formData.latitude), lng: Number(formData.longitude) });
+    }
+  }, [formData.latitude, formData.longitude]);
 
   useEffect(() => {
     const query = (formData.address || '').trim();
@@ -74,6 +85,9 @@ const PropertyBasicInfo = ({ formData, updateFormData, updateMultipleFields }) =
       locality: locality || formData.locality,
       city: city || formData.city,
       pincode: pincode || formData.pincode,
+      latitude: geo.location?.lat ?? '',
+      longitude: geo.location?.lng ?? '',
+      locationConfirmed: false,
     });
     if (geo.location?.lat && geo.location?.lng) {
       setMapLocation({ lat: geo.location.lat, lng: geo.location.lng });
@@ -193,7 +207,13 @@ const PropertyBasicInfo = ({ formData, updateFormData, updateMultipleFields }) =
             value={formData.address}
             onChange={(e) => {
               setSelectedPlaceId('');
-              updateFormData('address', e.target.value);
+              updateMultipleFields({
+                address: e.target.value,
+                latitude: '',
+                longitude: '',
+                locationConfirmed: false,
+              });
+              setMapLocation(null);
             }}
             onFocus={() => {
               if (addressSuggestions.length > 0) setShowAddressSuggestions(true);
@@ -232,22 +252,54 @@ const PropertyBasicInfo = ({ formData, updateFormData, updateMultipleFields }) =
       </div>
 
       <div className="form-field form-field--full">
-        <label className="field-label">Map Preview</label>
+        <label className="field-label">Select Location on Map*</label>
         <div className="address-map-preview">
           {mapEmbedUrl ? (
-            <iframe
-              title="Property location preview"
-              src={mapEmbedUrl}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="address-map-iframe"
-            />
+            <>
+              <iframe
+                title="Property location preview"
+                src={mapEmbedUrl}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="address-map-iframe"
+              />
+              <button
+                type="button"
+                className="nav-btn nav-btn--primary"
+                onClick={() => updateFormData('locationConfirmed', true)}
+                style={{ marginTop: '0.75rem' }}
+              >
+                {formData.locationConfirmed ? 'Location Confirmed' : 'Use This Map Location'}
+              </button>
+              {(formData.latitude && formData.longitude) && (
+                <p className="field-hint">
+                  Coordinates: {Number(formData.latitude).toFixed(6)}, {Number(formData.longitude).toFixed(6)}
+                </p>
+              )}
+              {mapValidationError && (
+                <div className="field-error" role="alert" style={{ marginTop: '0.5rem' }}>
+                  {mapValidationError}
+                </div>
+              )}
+            </>
           ) : (
             <p className="field-hint">
-              Select an address suggestion to preview it on the map.
+              Select an address suggestion to load and confirm map coordinates.
             </p>
           )}
         </div>
+      </div>
+
+      <div className="form-field form-field--full">
+        <label htmlFor="addressText" className="field-label">Address Details (Optional)</label>
+        <input
+          type="text"
+          id="addressText"
+          className="field-input"
+          placeholder="Landmark, tower, floor, or nearby reference"
+          value={formData.addressText || ''}
+          onChange={(e) => updateFormData('addressText', e.target.value)}
+        />
       </div>
 
       <div className="form-field">

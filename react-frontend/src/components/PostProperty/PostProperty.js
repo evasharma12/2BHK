@@ -14,6 +14,10 @@ const defaultFormData = {
   propertyType: '',
   bhk: '',
   address: '',
+  addressText: '',
+  latitude: '',
+  longitude: '',
+  locationConfirmed: false,
   locality: '',
   city: '',
   pincode: '',
@@ -54,7 +58,46 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
     setFormData(prev => ({ ...prev, ...updates }));
   };
 
+  const validateStepOne = () => {
+    const requiredFields = [
+      ['propertyType', 'Select a property type.'],
+      ['bhk', 'Select a BHK type.'],
+      ['address', 'Enter the property address.'],
+      ['locality', 'Enter locality/area.'],
+      ['city', 'Enter city.'],
+      ['pincode', 'Enter a valid 6-digit pincode.'],
+    ];
+
+    for (const [field, message] of requiredFields) {
+      if (!String(formData[field] || '').trim()) {
+        setError(message);
+        return false;
+      }
+    }
+
+    if (!/^\d{6}$/.test(String(formData.pincode || '').trim())) {
+      setError('Enter a valid 6-digit pincode.');
+      return false;
+    }
+
+    const lat = Number(formData.latitude);
+    const lng = Number(formData.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setError('Select a location from map suggestions to set coordinates.');
+      return false;
+    }
+
+    if (!formData.locationConfirmed) {
+      setError('Confirm the map location before continuing.');
+      return false;
+    }
+
+    return true;
+  };
+
   const handleNext = () => {
+    setError('');
+    if (currentStep === 1 && !validateStepOne()) return;
     if (currentStep < totalSteps) {
       setCurrentStep(prev => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -98,7 +141,9 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
         property_for: formData.propertyFor,
         property_type: formData.propertyType,
         bhk_type: formData.bhk,
-        address: formData.address,
+        address_text: String(formData.addressText || formData.address || '').trim() || null,
+        latitude: Number(formData.latitude),
+        longitude: Number(formData.longitude),
         locality: formData.locality,
         city: formData.city,
         state: '',
@@ -145,6 +190,14 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
             formData={formData}
             updateFormData={updateFormData}
             updateMultipleFields={updateMultipleFields}
+            mapValidationError={
+              error &&
+              (error.includes('map') ||
+                error.includes('coordinates') ||
+                error.includes('location'))
+                ? error
+                : ''
+            }
           />
         );
       case 2:
