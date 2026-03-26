@@ -82,6 +82,23 @@ function upsertPrimaryPhone(userId, phone_number) {
   });
 }
 
+function parseAndValidateCoordinates(body) {
+  const latitude = Number(body.latitude);
+  const longitude = Number(body.longitude);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    throw new Error('Latitude and longitude are required and must be numbers');
+  }
+  if (latitude < -90 || latitude > 90) {
+    throw new Error('Latitude must be between -90 and 90');
+  }
+  if (longitude < -180 || longitude > 180) {
+    throw new Error('Longitude must be between -180 and 180');
+  }
+
+  return { latitude, longitude };
+}
+
 class PropertyController {
   static async createProperty(req, res) {
     try {
@@ -105,7 +122,6 @@ class PropertyController {
         'property_for',
         'property_type',
         'bhk_type',
-        'address_text',
         'locality',
         'city',
         'pincode',
@@ -128,6 +144,7 @@ class PropertyController {
       }
 
       const mobileNo = body.mobile_no || body.mobileNo;
+      const { latitude, longitude } = parseAndValidateCoordinates(body);
 
       const propertyData = {
         owner_id: ownerId,
@@ -139,6 +156,8 @@ class PropertyController {
         city: body.city,
         state: body.state || null,
         pincode: body.pincode,
+        latitude,
+        longitude,
         built_up_area: body.built_up_area,
         carpet_area: body.carpet_area,
         total_floors: body.total_floors,
@@ -179,7 +198,11 @@ class PropertyController {
       });
     } catch (error) {
       console.error('Create property error:', error);
-      if (error?.message?.includes('Invalid mobile number')) {
+      if (
+        error?.message?.includes('Invalid mobile number') ||
+        error?.message?.includes('Latitude') ||
+        error?.message?.includes('longitude')
+      ) {
         return res.status(400).json({ success: false, message: error.message });
       }
       return res.status(500).json({
@@ -366,7 +389,6 @@ class PropertyController {
         'property_for',
         'property_type',
         'bhk_type',
-        'address_text',
         'locality',
         'city',
         'pincode',
@@ -388,6 +410,7 @@ class PropertyController {
       }
 
       const mobileNo = body.mobile_no || body.mobileNo;
+      const { latitude, longitude } = parseAndValidateCoordinates(body);
 
       const updateData = {
         property_for: body.property_for,
@@ -398,6 +421,8 @@ class PropertyController {
         city: body.city,
         state: body.state || null,
         pincode: body.pincode,
+        latitude,
+        longitude,
         built_up_area: body.built_up_area,
         carpet_area: body.carpet_area,
         total_floors: body.total_floors,
@@ -440,7 +465,11 @@ class PropertyController {
       });
     } catch (error) {
       console.error('Update property error:', error);
-      if (error?.message?.includes('Invalid mobile number')) {
+      if (
+        error?.message?.includes('Invalid mobile number') ||
+        error?.message?.includes('Latitude') ||
+        error?.message?.includes('longitude')
+      ) {
         return res.status(400).json({ success: false, message: error.message });
       }
       return res.status(500).json({

@@ -34,7 +34,7 @@ const Property = {
           available_from
         )
         VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_SRID(POINT(0, 0), 4326), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_SRID(POINT(?, ?), 4326), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
       `;
 
@@ -48,6 +48,8 @@ const Property = {
         city,
         state,
         pincode,
+        latitude,
+        longitude,
         built_up_area,
         carpet_area,
         total_floors,
@@ -78,6 +80,8 @@ const Property = {
           city,
           state || null,
           pincode,
+          longitude,
+          latitude,
           built_up_area,
           carpet_area,
           total_floors,
@@ -171,6 +175,8 @@ const Property = {
           p.address_text,
           p.locality,
           p.city,
+          ST_Y(p.location) AS lat,
+          ST_X(p.location) AS lng,
           p.expected_price,
           p.built_up_area,
           p.carpet_area,
@@ -215,6 +221,8 @@ const Property = {
           p.bhk_type,
           p.locality,
           p.city,
+          ST_Y(p.location) AS lat,
+          ST_X(p.location) AS lng,
           p.expected_price,
           p.created_at
         FROM properties p
@@ -302,6 +310,10 @@ const Property = {
     ];
     const setParts = [];
     const values = [];
+    const hasCoordinates = updateData.latitude !== undefined || updateData.longitude !== undefined;
+    if (hasCoordinates && (updateData.latitude === undefined || updateData.longitude === undefined)) {
+      throw new Error('Both latitude and longitude are required to update location');
+    }
     for (const key of allowed) {
       if (updateData[key] !== undefined) {
         setParts.push(`${key} = ?`);
@@ -310,6 +322,10 @@ const Property = {
         if (key === 'balconies' && (val === undefined || val === null)) val = 0;
         values.push(val);
       }
+    }
+    if (hasCoordinates) {
+      setParts.push('location = ST_SRID(POINT(?, ?), 4326)');
+      values.push(updateData.longitude, updateData.latitude);
     }
     if (setParts.length === 0 && !updateData.image_urls && !updateData.amenities) {
       return 0;
@@ -359,6 +375,8 @@ const Property = {
     const property = await new Promise((resolve, reject) => {
       const sql = `
         SELECT p.*,
+          ST_Y(p.location) AS lat,
+          ST_X(p.location) AS lng,
           u.full_name AS owner_name,
           u.email AS owner_email
         FROM properties p
