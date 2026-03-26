@@ -99,6 +99,39 @@ function parseAndValidateCoordinates(body) {
   return { latitude, longitude };
 }
 
+function parseRadiusSearchQuery(query) {
+  const latRaw = query.lat;
+  const lngRaw = query.lng;
+
+  if (
+    (latRaw === undefined || latRaw === '') &&
+    (lngRaw === undefined || lngRaw === '')
+  ) {
+    return null;
+  }
+
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
+  const radiusRaw = query.radius_km;
+  const radius_km =
+    radiusRaw === undefined || radiusRaw === '' ? 10 : Number(radiusRaw);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    throw new Error('lat and lng must be valid numbers');
+  }
+  if (lat < -90 || lat > 90) {
+    throw new Error('lat must be between -90 and 90');
+  }
+  if (lng < -180 || lng > 180) {
+    throw new Error('lng must be between -180 and 180');
+  }
+  if (!Number.isFinite(radius_km) || radius_km <= 0) {
+    throw new Error('radius_km must be a positive number');
+  }
+
+  return { lat, lng, radius_km };
+}
+
 class PropertyController {
   static async createProperty(req, res) {
     try {
@@ -215,6 +248,7 @@ class PropertyController {
   static async getAllProperties(req, res) {
     try {
       const q = req.query || {};
+      const radiusSearch = parseRadiusSearchQuery(q);
       const filters = {
         property_for: q.property_for || undefined,
         bhk_type: q.bhk_type || undefined,
@@ -222,10 +256,12 @@ class PropertyController {
         furnishing: q.furnishing || undefined,
         min_price: q.min_price !== undefined && q.min_price !== '' ? q.min_price : undefined,
         max_price: q.max_price !== undefined && q.max_price !== '' ? q.max_price : undefined,
-        location: q.location || undefined,
         city: q.city || undefined,
         locality: q.locality || undefined,
         sort: q.sort || 'newest',
+        lat: radiusSearch?.lat,
+        lng: radiusSearch?.lng,
+        radius_km: radiusSearch?.radius_km,
       };
       const properties = await Property.findAllWithFilters(filters);
       return res.json({
@@ -234,6 +270,16 @@ class PropertyController {
       });
     } catch (error) {
       console.error('Get properties error:', error);
+      if (
+        error?.message?.includes('lat') ||
+        error?.message?.includes('lng') ||
+        error?.message?.includes('radius_km')
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch properties',

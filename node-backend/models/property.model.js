@@ -117,6 +117,8 @@ const Property = {
     return new Promise((resolve, reject) => {
       const conditions = ['p.status = ?'];
       const values = ['active'];
+      let distanceExpr = 'NULL';
+      let usingRadiusSearch = false;
 
       if (filters.property_for) {
         conditions.push('p.property_for = ?');
@@ -142,11 +144,6 @@ const Property = {
         conditions.push('p.expected_price <= ?');
         values.push(Number(filters.max_price));
       }
-      if (filters.location && filters.location.trim()) {
-        const term = `%${filters.location.trim()}%`;
-        conditions.push('(p.city LIKE ? OR p.locality LIKE ?)');
-        values.push(term, term);
-      }
       if (filters.city) {
         conditions.push('p.city = ?');
         values.push(filters.city);
@@ -156,13 +153,42 @@ const Property = {
         values.push(`%${filters.locality}%`);
       }
 
+      if (filters.lat != null && filters.lng != null) {
+        const lat = Number(filters.lat);
+        const lng = Number(filters.lng);
+        const radiusKm = Number(filters.radius_km || 10);
+        const kmPerLatDegree = 111.32;
+        const latDelta = radiusKm / kmPerLatDegree;
+        const safeCosLat = Math.max(Math.abs(Math.cos((lat * Math.PI) / 180)), 0.000001);
+        const lngDelta = radiusKm / (kmPerLatDegree * safeCosLat);
+        const minLat = lat - latDelta;
+        const maxLat = lat + latDelta;
+        const minLng = lng - lngDelta;
+        const maxLng = lng + lngDelta;
+        const radiusMeters = radiusKm * 1000;
+
+        distanceExpr = 'ST_Distance_Sphere(p.location, ST_SRID(POINT(?, ?), 4326)) / 1000';
+
+        // Bounding box limits candidate rows so spatial distance check stays efficient.
+        conditions.push('MBRContains(ST_SRID(LineString(POINT(?, ?), POINT(?, ?)), 4326), p.location)');
+        values.push(minLng, minLat, maxLng, maxLat);
+
+        // Exact radius filter after bounding box prefilter.
+        conditions.push('ST_Distance_Sphere(p.location, ST_SRID(POINT(?, ?), 4326)) <= ?');
+        values.push(lng, lat, radiusMeters);
+        usingRadiusSearch = true;
+      }
+
       const orderBy = {
         newest: 'p.created_at DESC',
         price_asc: 'p.expected_price ASC',
         price_desc: 'p.expected_price DESC',
         area_desc: 'p.built_up_area DESC',
       };
-      const sort = filters.sort && orderBy[filters.sort] ? orderBy[filters.sort] : orderBy.newest;
+      const sort =
+        filters.sort && orderBy[filters.sort]
+          ? orderBy[filters.sort]
+          : (usingRadiusSearch ? 'distance_km ASC' : orderBy.newest);
 
       const whereClause = conditions.join(' AND ');
       const sql = `
@@ -177,6 +203,7 @@ const Property = {
           p.city,
           ST_Y(p.location) AS lat,
           ST_X(p.location) AS lng,
+          ${distanceExpr} AS distance_km,
           p.expected_price,
           p.built_up_area,
           p.carpet_area,
@@ -189,7 +216,11 @@ const Property = {
         ORDER BY ${sort}
       `;
 
-      db.query(sql, values, (err, results) => {
+      const queryValues = usingRadiusSearch
+        ? [filters.lng, filters.lat, ...values]
+        : values;
+
+      db.query(sql, queryValues, (err, results) => {
         if (err) return reject(err);
         resolve(results);
       });
