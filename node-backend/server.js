@@ -15,6 +15,7 @@ const propertyRoutes = require('./routes/property.routes');
 const userRoutes = require('./routes/user.routes');
 const amenityRoutes = require('./routes/amenity.routes');
 const mapsRoutes = require('./routes/maps.routes');
+const chatRoutes = require('./routes/chat.routes');
 
 // Initialize Express app
 const app = express();
@@ -98,6 +99,7 @@ app.use('/api/properties', propertyRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/amenities', amenityRoutes);
 app.use('/api/maps', mapsRoutes);
+app.use('/api/chats', chatRoutes);
 
 // ============================================
 // ERROR HANDLING
