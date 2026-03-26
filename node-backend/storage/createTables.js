@@ -78,6 +78,8 @@ async function createDatabaseSchema() {
     // DESTRUCTIVE RESET FOR PROPERTY STACK (cutover)
     // ============================================
     // Drop dependent tables first so properties can be recreated safely.
+    await connection.execute('DROP TABLE IF EXISTS chat_messages');
+    await connection.execute('DROP TABLE IF EXISTS chat_threads');
     await connection.execute('DROP TABLE IF EXISTS property_images');
     await connection.execute('DROP TABLE IF EXISTS property_amenities');
     await connection.execute('DROP TABLE IF EXISTS saved_properties');
@@ -222,7 +224,50 @@ async function createDatabaseSchema() {
     console.log('✓ Created saved_properties table');
 
     // ============================================
-    // 9. INQUIRIES TABLE (Contact requests)
+    // 8. CHAT_THREADS TABLE
+    // ============================================
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS chat_threads (
+        thread_id INT AUTO_INCREMENT PRIMARY KEY,
+        property_id INT NOT NULL,
+        owner_user_id INT NOT NULL,
+        participant_user_id INT NOT NULL,
+        last_message_at TIMESTAMP NULL,
+        last_message_text TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+        FOREIGN KEY (property_id) REFERENCES properties(property_id) ON DELETE CASCADE,
+        FOREIGN KEY (owner_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (participant_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        UNIQUE KEY unique_property_owner_participant (property_id, owner_user_id, participant_user_id)
+      )
+    `);
+    console.log('✓ Created chat_threads table');
+
+    // ============================================
+    // 9. CHAT_MESSAGES TABLE
+    // ============================================
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        message_id INT AUTO_INCREMENT PRIMARY KEY,
+        thread_id INT NOT NULL,
+        sender_user_id INT NOT NULL,
+        message_text TEXT NOT NULL,
+        message_type ENUM('text') NOT NULL DEFAULT 'text',
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+        FOREIGN KEY (thread_id) REFERENCES chat_threads(thread_id) ON DELETE CASCADE,
+        FOREIGN KEY (sender_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        INDEX idx_thread_created_at (thread_id, created_at),
+        INDEX idx_thread_is_read (thread_id, is_read)
+      )
+    `);
+    console.log('✓ Created chat_messages table');
+
+    // ============================================
+    // 10. INQUIRIES TABLE (Contact requests)
     // ============================================
     // await connection.execute(`
     //   CREATE TABLE IF NOT EXISTS inquiries (
@@ -248,7 +293,7 @@ async function createDatabaseSchema() {
     // console.log('✓ Created inquiries table');
 
     // ============================================
-    // 10. INSERT DEFAULT AMENITIES
+    // 11. INSERT DEFAULT AMENITIES
     // ============================================
     // await connection.execute(`
     //   INSERT IGNORE INTO amenities (amenity_name, amenity_slug, icon, category) VALUES
