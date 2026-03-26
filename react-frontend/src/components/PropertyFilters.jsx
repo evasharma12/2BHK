@@ -1,15 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import './PropertyFilters.css';
+import { api } from '../utils/api';
 
 const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }) => {
   // Local state for price inputs so typing doesn't trigger search on every keystroke
   const [localMinPrice, setLocalMinPrice] = useState(filters.minPrice || '');
   const [localMaxPrice, setLocalMaxPrice] = useState(filters.maxPrice || '');
+  const [localRadiusKm, setLocalRadiusKm] = useState(filters.radiusKm || '10');
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [isAddressLoading, setIsAddressLoading] = useState(false);
 
   useEffect(() => {
     setLocalMinPrice(filters.minPrice || '');
     setLocalMaxPrice(filters.maxPrice || '');
-  }, [filters.minPrice, filters.maxPrice]);
+    setLocalRadiusKm(filters.radiusKm || '10');
+  }, [filters.minPrice, filters.maxPrice, filters.radiusKm]);
+
+  useEffect(() => {
+    const query = (filters.location || '').trim();
+    if (query.length < 3) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      setIsAddressLoading(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsAddressLoading(true);
+      try {
+        const suggestions = await api.getAddressSuggestions(query);
+        setAddressSuggestions(suggestions);
+        setShowAddressSuggestions(true);
+      } catch {
+        setAddressSuggestions([]);
+      } finally {
+        setIsAddressLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [filters.location]);
 
   const handleChange = (name, value) => {
     onFilterChange({ ...filters, [name]: value });
@@ -18,12 +49,49 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
   const applyPriceFilter = () => {
     const min = String(localMinPrice || '').trim();
     const max = String(localMaxPrice || '').trim();
-    onFilterChange({ ...filters, minPrice: min, maxPrice: max });
+    const radius = Number(localRadiusKm) > 0 ? String(Number(localRadiusKm)) : '10';
+    onFilterChange({ ...filters, minPrice: min, maxPrice: max, radiusKm: radius });
+  };
+
+  const handleLocationSuggestionSelect = async (suggestion) => {
+    const description = suggestion?.description || '';
+    const next = { ...filters, location: description };
+    setShowAddressSuggestions(false);
+    if (!suggestion?.place_id) {
+      onFilterChange(next);
+      return;
+    }
+    try {
+      const geo = await api.geocodeAddress({ placeId: suggestion.place_id });
+      onFilterChange({
+        ...next,
+        lat: String(geo?.location?.lat ?? ''),
+        lng: String(geo?.location?.lng ?? ''),
+      });
+    } catch {
+      onFilterChange({ ...next, lat: '', lng: '' });
+    }
+  };
+
+  const handleLocationBlur = async () => {
+    const query = (filters.location || '').trim();
+    if (!query || (filters.lat && filters.lng)) return;
+    try {
+      const geo = await api.geocodeAddress({ address: query });
+      onFilterChange({
+        ...filters,
+        lat: String(geo?.location?.lat ?? ''),
+        lng: String(geo?.location?.lng ?? ''),
+      });
+    } catch {
+      // Keep text location if geocoding fails.
+    }
   };
 
   const hasActiveFilters = () => {
     return filters.propertyFor || filters.bhk || filters.propertyType || 
-           filters.minPrice || filters.maxPrice || filters.furnishing;
+           filters.minPrice || filters.maxPrice || filters.furnishing || filters.location ||
+           (filters.radiusKm && filters.radiusKm !== '10');
   };
 
   return (
@@ -93,6 +161,41 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
           </select>
         </div>
 
+        {/* Location + Radius */}
+        <div className="filter-group">
+          <label htmlFor="location-filter" className="filter-label">Location</label>
+          <input
+            id="location-filter"
+            type="text"
+            className="filter-input"
+            value={filters.location || ''}
+            placeholder="Search locality, area or landmark"
+            onChange={(e) => onFilterChange({ ...filters, location: e.target.value, lat: '', lng: '' })}
+            onFocus={() => {
+              if (addressSuggestions.length > 0) setShowAddressSuggestions(true);
+            }}
+            onBlur={handleLocationBlur}
+            autoComplete="off"
+          />
+          {isAddressLoading && <div className="filter-location-status">Loading suggestions...</div>}
+          {showAddressSuggestions && addressSuggestions.length > 0 && (
+            <div className="filter-location-suggestions">
+              {addressSuggestions.map((s) => (
+                <button
+                  key={s.place_id}
+                  type="button"
+                  className="filter-location-suggestion-item"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleLocationSuggestionSelect(s)}
+                >
+                  <span>{s.structured_formatting?.main_text || s.description}</span>
+                  <small>{s.structured_formatting?.secondary_text || ''}</small>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Property Type */}
         <div className="filter-group">
           <label htmlFor="type-filter" className="filter-label">Property Type</label>
@@ -157,6 +260,20 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
           >
             Apply
           </button>
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="radius-filter" className="filter-label">Search Radius (km)</label>
+          <input
+            id="radius-filter"
+            type="number"
+            min="1"
+            max="200"
+            className="filter-input"
+            value={localRadiusKm}
+            onChange={(e) => setLocalRadiusKm(e.target.value)}
+            onBlur={applyPriceFilter}
+          />
         </div>
       </div>
     </div>

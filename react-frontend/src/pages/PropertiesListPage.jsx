@@ -42,6 +42,9 @@ const PropertiesListPage = () => {
       min_price: searchParams.get('min_price') || undefined,
       max_price: searchParams.get('max_price') || undefined,
       location: searchParams.get('location') || undefined,
+      lat: searchParams.get('lat') || undefined,
+      lng: searchParams.get('lng') || undefined,
+      radius_km: searchParams.get('radius_km') || '10',
       sort: SORT_TO_BACKEND[sort] || sort,
     };
   }, [searchParams]);
@@ -53,6 +56,10 @@ const PropertiesListPage = () => {
     furnishing: searchParams.get('furnishing') || '',
     minPrice: searchParams.get('min_price') || '',
     maxPrice: searchParams.get('max_price') || '',
+    location: searchParams.get('location') || '',
+    lat: searchParams.get('lat') || '',
+    lng: searchParams.get('lng') || '',
+    radiusKm: searchParams.get('radius_km') || '10',
   }), [searchParams]);
 
   // Fetch properties from backend with current URL params (server-side filtering)
@@ -100,6 +107,10 @@ const PropertiesListPage = () => {
       furnishing: 'furnishing',
       minPrice: 'min_price',
       maxPrice: 'max_price',
+      location: 'location',
+      lat: 'lat',
+      lng: 'lng',
+      radiusKm: 'radius_km',
     };
     Object.entries(map).forEach(([uiKey, paramKey]) => {
       const v = newFilters[uiKey];
@@ -121,7 +132,16 @@ const PropertiesListPage = () => {
   };
 
   const sortBy = searchParams.get('sort') || 'newest';
-  const activeFilterCount = [filters.propertyFor && filters.propertyFor !== 'all', filters.bhk, filters.propertyType, filters.furnishing, filters.minPrice, filters.maxPrice].filter(Boolean).length;
+  const activeFilterCount = [
+    filters.propertyFor && filters.propertyFor !== 'all',
+    filters.bhk,
+    filters.propertyType,
+    filters.furnishing,
+    filters.minPrice,
+    filters.maxPrice,
+    filters.location,
+    filters.radiusKm && filters.radiusKm !== '10',
+  ].filter(Boolean).length;
 
   if (isLoading) {
     return (

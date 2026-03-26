@@ -122,6 +122,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  position: relative;
 }
 
 .form-group--location {
@@ -187,6 +188,53 @@
 
 .form-select option {
   padding: 0.5rem;
+}
+
+.search-location-status {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.search-location-suggestions {
+  position: absolute;
+  z-index: 15;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.search-location-suggestion-item {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  padding: 0.75rem 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  color: #0f172a;
+}
+
+.search-location-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.search-location-suggestion-item:hover {
+  background: #eff6ff;
+}
+
+.search-location-suggestion-item small {
+  color: #64748b;
+  font-size: 0.75rem;
 }
 
 /* Price Range Section */

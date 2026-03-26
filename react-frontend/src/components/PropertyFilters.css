@@ -72,6 +72,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
+  position: relative;
 }
 
 .filter-label {
@@ -168,6 +169,52 @@
 
 .filter-input::placeholder {
   color: #cbd5e1;
+}
+
+.filter-location-status {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.filter-location-suggestions {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.2rem);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.filter-location-suggestion-item {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  padding: 0.675rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  color: #0f172a;
+}
+
+.filter-location-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.filter-location-suggestion-item:hover {
+  background: #eff6ff;
+}
+
+.filter-location-suggestion-item small {
+  color: #64748b;
+  font-size: 0.75rem;
 }
 
 .price-separator {

@@ -9,8 +9,14 @@ const PropertySearchForm = () => {
   const [priceRange, setPriceRange] = useState(50000);
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [isAddressLoading, setIsAddressLoading] = useState(false);
   const [filters, setFilters] = useState({
     location: '',
+    latitude: '',
+    longitude: '',
+    radiusKm: '10',
     bhk: '',
     propertyType: '',
     furnishing: ''
@@ -24,6 +30,59 @@ const PropertySearchForm = () => {
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
+  useEffect(() => {
+    const query = (filters.location || '').trim();
+    if (query.length < 3) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      setIsAddressLoading(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsAddressLoading(true);
+      try {
+        const suggestions = await api.getAddressSuggestions(query);
+        setAddressSuggestions(suggestions);
+        setShowAddressSuggestions(true);
+      } catch {
+        setAddressSuggestions([]);
+      } finally {
+        setIsAddressLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [filters.location]);
+
+  const handleSuggestionSelect = async (suggestion) => {
+    const description = suggestion?.description || '';
+    handleFilterChange('location', description);
+    setShowAddressSuggestions(false);
+    if (!suggestion?.place_id) return;
+    try {
+      const geo = await api.geocodeAddress({ placeId: suggestion.place_id });
+      handleFilterChange('latitude', String(geo?.location?.lat ?? ''));
+      handleFilterChange('longitude', String(geo?.location?.lng ?? ''));
+    } catch {
+      handleFilterChange('latitude', '');
+      handleFilterChange('longitude', '');
+    }
+  };
+
+  const handleLocationBlur = async () => {
+    const query = (filters.location || '').trim();
+    if (!query) return;
+    if (filters.latitude && filters.longitude) return;
+    try {
+      const geo = await api.geocodeAddress({ address: query });
+      handleFilterChange('latitude', String(geo?.location?.lat ?? ''));
+      handleFilterChange('longitude', String(geo?.location?.lng ?? ''));
+    } catch {
+      // Keep text-only location when geocoding fails.
+    }
+  };
+
   const handlePriceChange = (e) => {
     setPriceRange(parseInt(e.target.value));
   };
@@ -35,6 +94,9 @@ const PropertySearchForm = () => {
     params.set('property_for', searchType === 'buy' ? 'sell' : 'rent');
     params.set('max_price', String(priceRange));
     if (filters.location?.trim()) params.set('location', filters.location.trim());
+    if (filters.latitude) params.set('lat', filters.latitude);
+    if (filters.longitude) params.set('lng', filters.longitude);
+    params.set('radius_km', String(Number(filters.radiusKm) > 0 ? Number(filters.radiusKm) : 10));
     if (filters.bhk) params.set('bhk_type', filters.bhk);
     if (filters.propertyType) params.set('property_type', filters.propertyType);
     if (filters.furnishing) params.set('furnishing', filters.furnishing);
@@ -130,8 +192,36 @@ const PropertySearchForm = () => {
                 className="form-input"
                 placeholder="Enter locality, area or landmark"
                 value={filters.location}
-                onChange={(e) => handleFilterChange('location', e.target.value)}
+                onChange={(e) => {
+                  handleFilterChange('location', e.target.value);
+                  handleFilterChange('latitude', '');
+                  handleFilterChange('longitude', '');
+                }}
+                onFocus={() => {
+                  if (addressSuggestions.length > 0) setShowAddressSuggestions(true);
+                }}
+                onBlur={handleLocationBlur}
+                autoComplete="off"
               />
+              {isAddressLoading && (
+                <div className="search-location-status">Loading suggestions...</div>
+              )}
+              {showAddressSuggestions && addressSuggestions.length > 0 && (
+                <div className="search-location-suggestions">
+                  {addressSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.place_id}
+                      type="button"
+                      className="search-location-suggestion-item"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSuggestionSelect(suggestion)}
+                    >
+                      <span>{suggestion.structured_formatting?.main_text || suggestion.description}</span>
+                      <small>{suggestion.structured_formatting?.secondary_text || ''}</small>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* BHK Type Dropdown */}
@@ -207,6 +297,22 @@ const PropertySearchForm = () => {
                 <option value="semi-furnished">Semi Furnished</option>
                 <option value="unfurnished">Unfurnished</option>
               </select>
+            </div>
+
+            {/* Search Radius */}
+            <div className="form-group">
+              <label htmlFor="radiusKm" className="form-label">
+                Search Radius (km)
+              </label>
+              <input
+                type="number"
+                id="radiusKm"
+                className="form-input"
+                min="1"
+                max="200"
+                value={filters.radiusKm}
+                onChange={(e) => handleFilterChange('radiusKm', e.target.value)}
+              />
             </div>
           </div>
 
