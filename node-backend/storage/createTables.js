@@ -285,7 +285,64 @@ async function createDatabaseSchema() {
     console.log('✓ Created support_queries table');
 
     // ============================================
-    // 11. INQUIRIES TABLE (Contact requests)
+    // 11. FEEDBACK_SUBMISSIONS TABLE
+    // ============================================
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS feedback_submissions (
+        feedback_submission_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NULL,
+        email VARCHAR(255) NULL,
+        phone_number VARCHAR(20) NULL,
+        feedback_text TEXT NOT NULL,
+        status ENUM('new', 'in-progress', 'resolved', 'closed') NOT NULL DEFAULT 'new',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+        INDEX idx_user_created (user_id, created_at),
+        INDEX idx_created_at (created_at),
+        INDEX idx_status (status)
+      )
+    `);
+    console.log('✓ Created feedback_submissions table');
+
+    // Backward-compatible migration for existing DBs where status column or index may not exist
+    const [statusColumnRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'feedback_submissions'
+        AND COLUMN_NAME = 'status'
+      LIMIT 1
+      `,
+      [dbConfig.database]
+    );
+    if (statusColumnRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE feedback_submissions
+        ADD COLUMN status ENUM('new', 'in-progress', 'resolved', 'closed') NOT NULL DEFAULT 'new'
+      `);
+    }
+
+    const [statusIndexRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'feedback_submissions'
+        AND INDEX_NAME = 'idx_status'
+      LIMIT 1
+      `,
+      [dbConfig.database]
+    );
+    if (statusIndexRows.length === 0) {
+      await connection.execute(`
+        CREATE INDEX idx_status ON feedback_submissions (status)
+      `);
+    }
+    console.log('✓ Ensured feedback_submissions.status column exists');
+
+    // ============================================
+    // 12. INQUIRIES TABLE (Contact requests)
     // ============================================
     // await connection.execute(`
     //   CREATE TABLE IF NOT EXISTS inquiries (
@@ -311,7 +368,7 @@ async function createDatabaseSchema() {
     // console.log('✓ Created inquiries table');
 
     // ============================================
-    // 12. INSERT DEFAULT AMENITIES
+    // 13. INSERT DEFAULT AMENITIES
     // ============================================
     // await connection.execute(`
     //   INSERT IGNORE INTO amenities (amenity_name, amenity_slug, icon, category) VALUES

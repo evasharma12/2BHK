@@ -601,6 +601,30 @@ export const api = {
     return data;
   },
 
+  async submitFeedback(feedbackText) {
+    const token = this.getAuthToken();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/feedback/submissions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          feedback_text: feedbackText,
+        }),
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'submit feedback');
+    }
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to submit feedback');
+    }
+    return data;
+  },
+
   // Helper to get auth token from localStorage
   getAuthToken() {
     return localStorage.getItem('token');

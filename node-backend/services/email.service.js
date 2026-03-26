@@ -55,6 +55,43 @@ async function sendSupportQueryNotification({ queryId, queryText, email, phone, 
   return { sent: true };
 }
 
+async function sendFeedbackNotification({ feedbackId, feedbackText, email, phone, userId }) {
+  const to = process.env.SUPPORT_NOTIFICATION_TO;
+  if (!to) return { skipped: true, reason: 'SUPPORT_NOTIFICATION_TO not configured' };
+
+  const transporter = buildTransporter();
+  if (!transporter) return { skipped: true, reason: 'SMTP config missing' };
+
+  await transporter.sendMail({
+    from: process.env.SUPPORT_NOTIFICATION_FROM || process.env.SMTP_USER,
+    to,
+    subject: 'Product Feedback from 2BHK application',
+    text: [
+      'Hello Team,',
+      '',
+      'A new feedback submission has been received from the 2BHK application.',
+      '',
+      'Submission Details:',
+      `- Feedback ID: ${feedbackId}`,
+      `- User ID: ${userId || 'anonymous'}`,
+      `- Email: ${email || 'not provided'}`,
+      `- Phone: ${phone || 'not provided'}`,
+      `- Submitted At: ${new Date().toISOString()}`,
+      '',
+      'Feedback:',
+      feedbackText,
+      '',
+      'Please review and prioritize if action is required.',
+      '',
+      'Regards,',
+      '2BHK System',
+    ].join('\n'),
+  });
+
+  return { sent: true };
+}
+
 module.exports = {
   sendSupportQueryNotification,
+  sendFeedbackNotification,
 };
