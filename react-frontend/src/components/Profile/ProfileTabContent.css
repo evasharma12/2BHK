@@ -510,6 +510,116 @@
     font-size: 0.75rem;
     font-weight: 700;
   }
+
+  .chat-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .chat-conversation-panel {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .chat-conversation-header {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .chat-conversation-name {
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.2rem;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    min-height: 220px;
+  }
+
+  .chat-message-row {
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .chat-message-row--mine {
+    justify-content: flex-end;
+  }
+
+  .chat-message-bubble {
+    max-width: 75%;
+    background: #f3f4f6;
+    border-radius: 10px;
+    padding: 0.5rem 0.65rem;
+  }
+
+  .chat-message-bubble--mine {
+    background: #dbeafe;
+  }
+
+  .chat-message-text {
+    font-size: 14px;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+
+  .chat-composer {
+    border-top: 1px solid #f1f5f9;
+    padding: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .chat-composer-input {
+    flex: 1;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0.55rem 0.65rem;
+    min-width: 0;
+  }
+
+  .chat-composer-send {
+    border: none;
+    border-radius: 8px;
+    padding: 0.55rem 0.9rem;
+    background: #2563eb;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .chat-composer-send:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .chat-error-text {
+    margin: 0 0.8rem 0.8rem;
+    color: #dc2626;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8125rem;
+  }
+
+  .chat-hint-text {
+    margin: 0;
+    color: #6b7280;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+  }
+
+  .chat-hint-text--panel {
+    padding: 1rem;
+  }
   
   /* ─── Empty State ──────────────────────────────────────────────── */
   .empty-state {
@@ -625,6 +735,28 @@
 
     .chat-thread-card__top {
       flex-wrap: wrap;
+    }
+
+    .chat-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .chat-conversation-panel {
+      min-height: 360px;
+    }
+
+    .chat-message-bubble {
+      max-width: 88%;
+    }
+
+    .chat-composer {
+      padding: 0.6rem;
+      gap: 0.45rem;
+    }
+
+    .chat-composer-send {
+      padding: 0.55rem 0.75rem;
+      white-space: nowrap;
     }
   
     .tab-loader {

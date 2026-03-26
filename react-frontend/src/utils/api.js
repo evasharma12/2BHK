@@ -577,6 +577,30 @@ export const api = {
     return data;
   },
 
+  async submitSupportQuery(queryText) {
+    const token = this.getAuthToken();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/support/queries`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          query_text: queryText,
+        }),
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'submit support query');
+    }
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to submit support query');
+    }
+    return data;
+  },
+
   // Helper to get auth token from localStorage
   getAuthToken() {
     return localStorage.getItem('token');

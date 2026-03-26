@@ -158,7 +158,7 @@ const ChatList = ({ userType }) => {
         <span className="tab-section__count">{threads.length} active</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.35fr', gap: '1rem' }}>
+      <div className="chat-layout">
         <div className="chat-thread-list">
           {threads.map((thread) => (
             <button
@@ -208,30 +208,21 @@ const ChatList = ({ userType }) => {
           ))}
         </div>
 
-        <div
-          style={{
-            border: '1px solid #e5e7eb',
-            borderRadius: 12,
-            background: '#fff',
-            minHeight: 420,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+        <div className="chat-conversation-panel">
           {selectedThread ? (
             <>
-              <div style={{ padding: '0.9rem 1rem', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ fontWeight: 700 }}>{selectedThread.other_user_name || 'User'}</div>
+              <div className="chat-conversation-header">
+                <div className="chat-conversation-name">{selectedThread.other_user_name || 'User'}</div>
                 <Link to={`/properties/${selectedThread.property_id}`} className="chat-thread-card__property">
                   {getPropertyContext(selectedThread)}
                 </Link>
               </div>
 
-              <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+              <div className="chat-messages">
                 {messagesLoading ? (
-                  <p style={{ margin: 0, color: '#6b7280' }}>Loading messages...</p>
+                  <p className="chat-hint-text">Loading messages...</p>
                 ) : messages.length === 0 ? (
-                  <p style={{ margin: 0, color: '#6b7280' }}>No messages yet. Start the conversation.</p>
+                  <p className="chat-hint-text">No messages yet. Start the conversation.</p>
                 ) : (
                   messages.map((message) => {
                     const currentUser = api.getUser();
@@ -239,21 +230,10 @@ const ChatList = ({ userType }) => {
                     return (
                       <div
                         key={message.message_id}
-                        style={{
-                          marginBottom: 10,
-                          display: 'flex',
-                          justifyContent: mine ? 'flex-end' : 'flex-start',
-                        }}
+                        className={`chat-message-row ${mine ? 'chat-message-row--mine' : ''}`}
                       >
-                        <div
-                          style={{
-                            maxWidth: '75%',
-                            background: mine ? '#dbeafe' : '#f3f4f6',
-                            borderRadius: 10,
-                            padding: '0.5rem 0.65rem',
-                          }}
-                        >
-                          <div style={{ fontSize: 14, lineHeight: 1.35 }}>{message.message_text}</div>
+                        <div className={`chat-message-bubble ${mine ? 'chat-message-bubble--mine' : ''}`}>
+                          <div className="chat-message-text">{message.message_text}</div>
                         </div>
                       </div>
                     );
@@ -277,34 +257,27 @@ const ChatList = ({ userType }) => {
                     setSending(false);
                   }
                 }}
-                style={{ borderTop: '1px solid #f1f5f9', padding: '0.75rem', display: 'flex', gap: '0.5rem' }}
+                className="chat-composer"
               >
                 <input
                   type="text"
                   placeholder="Type a message..."
                   value={composerText}
                   onChange={(e) => setComposerText(e.target.value)}
-                  style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: 8, padding: '0.55rem 0.65rem' }}
+                  className="chat-composer-input"
                 />
                 <button
                   type="submit"
                   disabled={sending || !composerText.trim()}
-                  style={{
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '0.55rem 0.9rem',
-                    background: '#2563eb',
-                    color: '#fff',
-                    cursor: 'pointer',
-                  }}
+                  className="chat-composer-send"
                 >
                   {sending ? 'Sending...' : 'Send'}
                 </button>
               </form>
-              {chatError && <p style={{ margin: '0 0.8rem 0.8rem', color: '#dc2626' }}>{chatError}</p>}
+              {chatError && <p className="chat-error-text">{chatError}</p>}
             </>
           ) : (
-            <div style={{ padding: '1rem', color: '#6b7280' }}>Select a chat to start messaging.</div>
+            <div className="chat-hint-text chat-hint-text--panel">Select a chat to start messaging.</div>
           )}
         </div>
       </div>

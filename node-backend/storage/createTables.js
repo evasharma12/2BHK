@@ -78,13 +78,13 @@ async function createDatabaseSchema() {
     // DESTRUCTIVE RESET FOR PROPERTY STACK (cutover)
     // ============================================
     // Drop dependent tables first so properties can be recreated safely.
-    await connection.execute('DROP TABLE IF EXISTS chat_messages');
-    await connection.execute('DROP TABLE IF EXISTS chat_threads');
-    await connection.execute('DROP TABLE IF EXISTS property_images');
-    await connection.execute('DROP TABLE IF EXISTS property_amenities');
-    await connection.execute('DROP TABLE IF EXISTS saved_properties');
-    await connection.execute('DROP TABLE IF EXISTS properties');
-    console.log('✓ Reset property tables for spatial cutover');
+    // await connection.execute('DROP TABLE IF EXISTS chat_messages');
+    // await connection.execute('DROP TABLE IF EXISTS chat_threads');
+    // await connection.execute('DROP TABLE IF EXISTS property_images');
+    // await connection.execute('DROP TABLE IF EXISTS property_amenities');
+    // await connection.execute('DROP TABLE IF EXISTS saved_properties');
+    // await connection.execute('DROP TABLE IF EXISTS properties');
+    // console.log('✓ Reset property tables for spatial cutover');
 
     // ============================================
     // 3. PROPERTIES TABLE (Main table - optimized for filtering)
@@ -267,7 +267,25 @@ async function createDatabaseSchema() {
     console.log('✓ Created chat_messages table');
 
     // ============================================
-    // 10. INQUIRIES TABLE (Contact requests)
+    // 10. SUPPORT_QUERIES TABLE (Customer care submissions)
+    // ============================================
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS support_queries (
+        support_query_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NULL,
+        email VARCHAR(255) NULL,
+        phone_number VARCHAR(20) NULL,
+        query_text TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+        INDEX idx_user_created (user_id, created_at),
+        INDEX idx_created_at (created_at)
+      )
+    `);
+    console.log('✓ Created support_queries table');
+
+    // ============================================
+    // 11. INQUIRIES TABLE (Contact requests)
     // ============================================
     // await connection.execute(`
     //   CREATE TABLE IF NOT EXISTS inquiries (
@@ -293,7 +311,7 @@ async function createDatabaseSchema() {
     // console.log('✓ Created inquiries table');
 
     // ============================================
-    // 11. INSERT DEFAULT AMENITIES
+    // 12. INSERT DEFAULT AMENITIES
     // ============================================
     // await connection.execute(`
     //   INSERT IGNORE INTO amenities (amenity_name, amenity_slug, icon, category) VALUES

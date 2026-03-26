@@ -19,6 +19,7 @@ const userRoutes = require('./routes/user.routes');
 const amenityRoutes = require('./routes/amenity.routes');
 const mapsRoutes = require('./routes/maps.routes');
 const chatRoutes = require('./routes/chat.routes');
+const supportRoutes = require('./routes/support.routes');
 const ChatThread = require('./models/chatThread.model');
 const ChatMessage = require('./models/chatMessage.model');
 const { emitNewMessage, emitReadReceipt } = require('./services/chatRealtime.service');
@@ -231,6 +232,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/amenities', amenityRoutes);
 app.use('/api/maps', mapsRoutes);
 app.use('/api/chats', chatRoutes);
+app.use('/api/support', supportRoutes);
 
 // ============================================
 // ERROR HANDLING
