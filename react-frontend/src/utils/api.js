@@ -451,6 +451,132 @@ export const api = {
     return data.data;
   },
 
+  // Chat endpoints
+  async createOrGetChatThread(propertyId) {
+    const token = this.getAuthToken();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/chats/threads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          property_id: propertyId,
+        }),
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'create or get chat thread');
+    }
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to create or get chat thread');
+    }
+    return data;
+  },
+
+  async getChatThreads() {
+    const token = this.getAuthToken();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/chats/threads`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'get chat threads');
+    }
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to fetch chat threads');
+    }
+    return data;
+  },
+
+  async getChatThreadMessages(threadId, options = {}) {
+    const token = this.getAuthToken();
+    const search = new URLSearchParams();
+    if (options.before != null && options.before !== '') {
+      search.set('before', String(options.before));
+    }
+    if (options.limit != null && options.limit !== '') {
+      search.set('limit', String(options.limit));
+    }
+
+    const query = search.toString();
+    const url = query
+      ? `${API_BASE_URL}/api/chats/threads/${threadId}/messages?${query}`
+      : `${API_BASE_URL}/api/chats/threads/${threadId}/messages`;
+
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'get chat thread messages');
+    }
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to fetch chat messages');
+    }
+    return data;
+  },
+
+  async sendChatMessage(threadId, messageText, messageType = 'text') {
+    const token = this.getAuthToken();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/chats/threads/${threadId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message_text: messageText,
+          message_type: messageType,
+        }),
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'send chat message');
+    }
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to send chat message');
+    }
+    return data;
+  },
+
+  async markChatThreadRead(threadId) {
+    const token = this.getAuthToken();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/chats/threads/${threadId}/read`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'mark chat thread read');
+    }
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to mark chat thread as read');
+    }
+    return data;
+  },
+
   // Helper to get auth token from localStorage
   getAuthToken() {
     return localStorage.getItem('token');
