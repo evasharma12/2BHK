@@ -1,11 +1,48 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../utils/api';
 import './ContactOwner.css';
 
-const ContactOwner = ({ owner }) => {
+const ContactOwner = ({ owner, propertyId, ownerId }) => {
+  const navigate = useNavigate();
   const [showContact, setShowContact] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState('');
+
+  const currentUser = api.getUser();
+  const ownerUserId = ownerId || owner?.ownerId || owner?.owner_id;
+  const isOwnProperty =
+    currentUser?.user_id != null &&
+    ownerUserId != null &&
+    Number(currentUser.user_id) === Number(ownerUserId);
 
   const handleRevealContact = () => {
     setShowContact(true);
+  };
+
+  const handleStartOrOpenChat = async () => {
+    if (!currentUser?.user_id) {
+      navigate(`/login?redirect=/properties/${propertyId}`);
+      return;
+    }
+
+    if (!propertyId || isOwnProperty) return;
+
+    setChatError('');
+    setChatLoading(true);
+    try {
+      const response = await api.createOrGetChatThread(propertyId);
+      const threadId =
+        response?.data?.thread_id || response?.data?.threadId || response?.data?.id || null;
+
+      navigate('/profile?tab=chats', {
+        state: threadId ? { selectedThreadId: threadId } : undefined,
+      });
+    } catch (error) {
+      setChatError(error?.message || 'Unable to open chat right now. Please try again.');
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   return (
@@ -48,21 +85,6 @@ const ContactOwner = ({ owner }) => {
             </div>
           </div>
 
-          <div className="contact-item">
-            <div className="contact-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
-              </svg>
-            </div>
-            <div className="contact-content">
-              <span className="contact-label">Email</span>
-              <a href={`mailto:${owner?.ownerEmail}`} className="contact-value">
-                {owner?.ownerEmail || owner?.owner_email || 'owner@example.com'}
-              </a>
-            </div>
-          </div>
-
           <div className="contact-actions">
             <a href={`tel:${owner?.ownerPhone}`} className="contact-action-btn contact-action-btn--call">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -70,14 +92,22 @@ const ContactOwner = ({ owner }) => {
               </svg>
               Call Now
             </a>
-            <a href={`mailto:${owner?.ownerEmail}`} className="contact-action-btn contact-action-btn--email">
+            <button
+              type="button"
+              className="contact-action-btn contact-action-btn--chat"
+              onClick={handleStartOrOpenChat}
+              disabled={chatLoading || !propertyId || isOwnProperty}
+            >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
               </svg>
-              Send Email
-            </a>
+              {chatLoading ? 'Opening Chat...' : 'Start Chat'}
+            </button>
           </div>
+          {isOwnProperty && (
+            <p className="contact-chat-info">You cannot start a chat on your own property listing.</p>
+          )}
+          {chatError && <p className="contact-chat-error">{chatError}</p>}
         </div>
       )}
 

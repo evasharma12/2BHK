@@ -492,7 +492,7 @@ const PropertyDetailPage = () => {
 
           {/* Right Column - Contact Owner */}
           <aside className="property-sidebar">
-            <ContactOwner owner={property} />
+            <ContactOwner owner={property} propertyId={property.id} ownerId={property.ownerId} />
           </aside>
         </div>
       </div>

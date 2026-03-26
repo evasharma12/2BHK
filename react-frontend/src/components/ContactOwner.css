@@ -186,15 +186,33 @@
   box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35);
 }
 
-.contact-action-btn--email {
+.contact-action-btn--chat {
   background: #ffffff;
   color: #2563eb;
   border: 2px solid #2563eb;
 }
 
-.contact-action-btn--email:hover {
+.contact-action-btn--chat:hover {
   background: #eff6ff;
   transform: translateY(-2px);
+}
+
+.contact-action-btn--chat:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.contact-chat-info {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.contact-chat-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: #b91c1c;
 }
 
 /* Contact Note */
