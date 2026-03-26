@@ -62,6 +62,8 @@ const PropertyDetailPage = () => {
       ownerPhone: p.owner_phone,
       images: p.images || [],
       amenities: p.amenities || [],
+      lat: p.lat != null ? Number(p.lat) : null,
+      lng: p.lng != null ? Number(p.lng) : null,
     };
   };
 
@@ -118,6 +120,16 @@ const PropertyDetailPage = () => {
 
   const propertyMapEmbedUrl = useMemo(() => {
     if (!property) return '';
+    const hasCoordinates =
+      Number.isFinite(property.lat) &&
+      Number.isFinite(property.lng) &&
+      property.lat >= -90 &&
+      property.lat <= 90 &&
+      property.lng >= -180 &&
+      property.lng <= 180;
+    if (hasCoordinates) {
+      return `https://www.google.com/maps?q=${property.lat},${property.lng}&z=16&output=embed`;
+    }
     const query = [property.address, property.locality, property.city, property.pincode]
       .filter(Boolean)
       .join(', ')
