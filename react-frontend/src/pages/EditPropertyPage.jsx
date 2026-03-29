@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { loginPathWithRedirect } from '../utils/authRedirect';
 import PostProperty from '../components/PostProperty/PostProperty';
 import { api } from '../utils/api';
 import './EditPropertyPage.css';
@@ -42,6 +43,7 @@ const mapBackendToFormData = (p) => {
 const EditPropertyPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [initialData, setInitialData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,7 +51,7 @@ const EditPropertyPage = () => {
   useEffect(() => {
     const user = api.getUser();
     if (!user) {
-      navigate(`/login?redirect=/properties/${id}/edit`);
+      navigate(loginPathWithRedirect(location));
       return;
     }
     let cancelled = false;
@@ -73,7 +75,7 @@ const EditPropertyPage = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [id, navigate]);
+  }, [id, navigate, location]);
 
   if (loading) {
     return (

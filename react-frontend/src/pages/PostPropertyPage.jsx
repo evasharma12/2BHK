@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { loginPathWithRedirect } from '../utils/authRedirect';
 import PostProperty from '../components/PostProperty/PostProperty';
 import PhoneOtpVerifier from '../components/common/PhoneOtpVerifier';
 import { api } from '../utils/api';
@@ -7,6 +8,7 @@ import './PostPropertyPage.css';
 
 const PostPropertyPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
   const [user, setUser] = useState(null);
   const [phoneInput, setPhoneInput] = useState('');
@@ -16,7 +18,7 @@ const PostPropertyPage = () => {
     const boot = async () => {
       const localUser = api.getUser();
       if (!localUser) {
-        navigate('/login?redirect=/post-property');
+        navigate(loginPathWithRedirect(location));
         return;
       }
       try {
@@ -34,7 +36,7 @@ const PostPropertyPage = () => {
       }
     };
     boot();
-  }, [navigate]);
+  }, [navigate, location]);
 
   const needsPhoneOnboarding = useMemo(() => {
     return !phoneInput || !isVerified;

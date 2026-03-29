@@ -18,9 +18,18 @@ async function runChatUnreadDigest() {
   const stats = { sent: 0, skipped: 0, failed: 0 };
   for (const row of recipients) {
     try {
+      // Always use current users.email (login identifier) for this user_id, not only the aggregate join.
+      const user = await User.findById(row.user_id);
+      const toEmail = user?.email ? String(user.email).trim() : '';
+      const fullName = user?.full_name ?? row.full_name;
+      if (!toEmail) {
+        stats.skipped += 1;
+        continue;
+      }
+
       const result = await sendChatUnreadDigest({
-        toEmail: row.email,
-        fullName: row.full_name,
+        toEmail,
+        fullName,
         unreadCount: row.unread_total,
         appUrl,
       });

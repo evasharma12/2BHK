@@ -101,9 +101,16 @@ function resolveAppPublicUrl() {
  * Daily digest: notify a user of total unread inbound chat messages.
  * Skips when SMTP is not configured (same pattern as support/feedback).
  */
+function isValidRecipientEmail(email) {
+  const s = String(email || '').trim();
+  if (!s) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+
 async function sendChatUnreadDigest({ toEmail, fullName, unreadCount, appUrl }) {
-  if (!toEmail || !String(toEmail).trim()) {
-    return { skipped: true, reason: 'recipient email missing' };
+  const normalized = String(toEmail || '').trim();
+  if (!normalized || !isValidRecipientEmail(normalized)) {
+    return { skipped: true, reason: 'recipient email missing or invalid' };
   }
 
   const transporter = buildTransporter();
@@ -116,7 +123,7 @@ async function sendChatUnreadDigest({ toEmail, fullName, unreadCount, appUrl }) 
 
   await transporter.sendMail({
     from: process.env.SUPPORT_NOTIFICATION_FROM || process.env.SMTP_USER,
-    to: toEmail,
+    to: normalized,
     subject: 'You have unread messages on 2BHK',
     text: [
       `Hi ${fullName || 'there'},`,

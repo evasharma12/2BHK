@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { loginPathWithRedirect } from '../utils/authRedirect';
 import ImageGallery from '../components/ImageGallery';
 import ContactOwner from '../components/ContactOwner';
 import { api } from '../utils/api';
@@ -8,6 +9,7 @@ import './PropertyDetailPage.css';
 const PropertyDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [property, setProperty] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -141,7 +143,7 @@ const PropertyDetailPage = () => {
 
   const handleSaveClick = async () => {
     if (!user?.user_id) {
-      navigate(`/login?redirect=/properties/${id}`);
+      navigate(loginPathWithRedirect(location));
       return;
     }
     setSaveLoading(true);

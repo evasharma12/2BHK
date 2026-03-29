@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { api } from '../utils/api';
+import { safeRedirectTarget } from '../utils/authRedirect';
 import './LoginPage.css';
 
 const LoginPage = ({ defaultMode = 'login' }) => {
   const [searchParams] = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/';
+  const redirectTo = safeRedirectTarget(searchParams.get('redirect') || '/');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isLoginMode, setIsLoginMode] = useState(defaultMode === 'login'); // true for login, false for signup

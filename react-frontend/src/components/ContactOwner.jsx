@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { loginPathWithRedirect } from '../utils/authRedirect';
 import { api } from '../utils/api';
 import './ContactOwner.css';
 
 const ContactOwner = ({ owner, propertyId, ownerId }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showContact, setShowContact] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState('');
@@ -22,7 +24,7 @@ const ContactOwner = ({ owner, propertyId, ownerId }) => {
 
   const handleStartOrOpenChat = async () => {
     if (!currentUser?.user_id) {
-      navigate(`/login?redirect=/properties/${propertyId}`);
+      navigate(loginPathWithRedirect(location));
       return;
     }
 

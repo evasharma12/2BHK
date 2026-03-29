@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../utils/api';
+import { loginPathWithRedirect } from '../utils/authRedirect';
 import './SupportPage.css';
 
 const FeedbackPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -14,6 +17,11 @@ const FeedbackPage = () => {
     const text = String(feedbackText || '').trim();
     if (!text) {
       setSubmitError('Please enter your feedback.');
+      return;
+    }
+
+    if (!api.getAuthToken() || !api.getUser()) {
+      navigate(loginPathWithRedirect(location));
       return;
     }
 

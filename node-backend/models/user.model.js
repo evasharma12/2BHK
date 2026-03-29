@@ -257,7 +257,7 @@ const User = {
 
   // Used by Google auth to create / update users
   async createOrUpdateFromGoogle(googleData) {
-    const { email, name, picture, googleId } = googleData;
+    const { email, name, picture, googleId, emailVerified } = googleData;
 
     return new Promise((resolve, reject) => {
       // Check if user already exists
@@ -267,14 +267,29 @@ const User = {
 
         if (results.length > 0) {
           const userId = results[0].user_id;
-          const updateSql = `
+          // When Google marks the email verified, persist that email on the row (same address used for login / digests).
+          const updateSql =
+            emailVerified === true
+              ? `
+            UPDATE users
+            SET full_name = COALESCE(?, full_name),
+                profile_image = COALESCE(?, profile_image),
+                is_verified = TRUE,
+                email = ?
+            WHERE user_id = ?
+          `
+              : `
             UPDATE users
             SET full_name = COALESCE(?, full_name),
                 profile_image = COALESCE(?, profile_image),
                 is_verified = TRUE
             WHERE user_id = ?
           `;
-          db.query(updateSql, [name || null, picture || null, userId], (updateErr) => {
+          const params =
+            emailVerified === true
+              ? [name || null, picture || null, email, userId]
+              : [name || null, picture || null, userId];
+          db.query(updateSql, params, (updateErr) => {
             if (updateErr) return reject(updateErr);
             resolve(userId);
           });
