@@ -7,6 +7,7 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
   const [localMinPrice, setLocalMinPrice] = useState(filters.minPrice || '');
   const [localMaxPrice, setLocalMaxPrice] = useState(filters.maxPrice || '');
   const [localRadiusKm, setLocalRadiusKm] = useState(filters.radiusKm || '10');
+  const [localLocation, setLocalLocation] = useState(filters.location || '');
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
@@ -19,7 +20,11 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
   }, [filters.minPrice, filters.maxPrice, filters.radiusKm]);
 
   useEffect(() => {
-    const query = (filters.location || '').trim();
+    setLocalLocation(filters.location || '');
+  }, [filters.location]);
+
+  useEffect(() => {
+    const query = localLocation.trim();
     if (query.length < 3) {
       setAddressSuggestions([]);
       setShowAddressSuggestions(false);
@@ -47,7 +52,7 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
     }, 350);
 
     return () => clearTimeout(timeoutId);
-  }, [filters.location]);
+  }, [localLocation]);
 
   const handleChange = (name, value) => {
     onFilterChange({ ...filters, [name]: value });
@@ -62,6 +67,7 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
 
   const handleLocationSuggestionSelect = async (suggestion) => {
     const description = suggestion?.description || '';
+    setLocalLocation(description);
     const next = { ...filters, location: description };
     setShowAddressSuggestions(false);
     if (!suggestion?.place_id) {
@@ -86,18 +92,36 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
   };
 
   const handleLocationBlur = async () => {
-    const query = (filters.location || '').trim();
-    if (!query || (filters.lat && filters.lng)) return;
+    const query = localLocation.trim();
+    const prevLocation = (filters.location || '').trim();
+    const f = filters;
+
+    if (!query) {
+      if (prevLocation || f.lat || f.lng) {
+        onFilterChange({ ...f, location: '', lat: '', lng: '' });
+      }
+      return;
+    }
+
+    if (query === prevLocation && f.lat && f.lng) {
+      return;
+    }
+
+    if (query !== prevLocation) {
+      onFilterChange({ ...f, location: query, lat: '', lng: '' });
+    }
+
     try {
       const geo = await api.geocodeAddress({ address: query });
       onFilterChange({
-        ...filters,
+        ...f,
+        location: query,
         lat: String(geo?.location?.lat ?? ''),
         lng: String(geo?.location?.lng ?? ''),
       });
       setLocationAssistError('');
     } catch (error) {
-      // Keep text location if geocoding fails.
+      onFilterChange({ ...f, location: query, lat: '', lng: '' });
       setLocationAssistError(
         error?.message ||
           'Could not pin exact coordinates. Search will continue using location text.'
@@ -185,9 +209,9 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
             id="location-filter"
             type="text"
             className="filter-input"
-            value={filters.location || ''}
+            value={localLocation}
             placeholder="Search locality, area or landmark"
-            onChange={(e) => onFilterChange({ ...filters, location: e.target.value, lat: '', lng: '' })}
+            onChange={(e) => setLocalLocation(e.target.value)}
             onFocus={() => {
               if (addressSuggestions.length > 0) setShowAddressSuggestions(true);
             }}
@@ -249,6 +273,20 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
           </select>
         </div>
 
+        <div className="filter-group">
+          <label htmlFor="radius-filter" className="filter-label">Search Radius (km)</label>
+          <input
+            id="radius-filter"
+            type="number"
+            min="1"
+            max="200"
+            className="filter-input"
+            value={localRadiusKm}
+            onChange={(e) => setLocalRadiusKm(e.target.value)}
+            onBlur={applyPriceFilter}
+          />
+        </div>
+
         {/* Price Range - apply on blur or via Apply button; typing doesn't refetch on every keystroke */}
         <div className="filter-group filter-group--price">
           <label className="filter-label">Price Range</label>
@@ -278,20 +316,6 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
           >
             Apply
           </button>
-        </div>
-
-        <div className="filter-group">
-          <label htmlFor="radius-filter" className="filter-label">Search Radius (km)</label>
-          <input
-            id="radius-filter"
-            type="number"
-            min="1"
-            max="200"
-            className="filter-input"
-            value={localRadiusKm}
-            onChange={(e) => setLocalRadiusKm(e.target.value)}
-            onBlur={applyPriceFilter}
-          />
         </div>
       </div>
     </div>

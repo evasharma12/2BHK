@@ -3,7 +3,8 @@
 .properties-page {
   min-height: 100vh;
   background: #f8fafc;
-  padding: 2rem 0 3rem;
+  /* Fixed navbar (.navbar height 70px) + breathing room below it */
+  padding: calc(70px + 1.5rem) 0 3rem;
 }
 
 .properties-container {
