@@ -13,30 +13,72 @@ const dbConfig = {
   })(),
 };
 
+const MYSQL_RESERVED_DATABASES = new Set([
+  'mysql',
+  'information_schema',
+  'performance_schema',
+  'sys',
+]);
+
+function quoteIdentifier(name) {
+  return '`' + String(name).replace(/`/g, '``') + '`';
+}
+
+/**
+ * App schema name must not be a MySQL system database (common misconfiguration: DB_NAME=mysql).
+ */
+function assertApplicationDatabaseName(name) {
+  const raw = String(name || '').trim();
+  const effective = raw || '2bhk_db';
+  if (MYSQL_RESERVED_DATABASES.has(effective.toLowerCase())) {
+    throw new Error(
+      `Invalid DB_NAME "${effective}": reserved MySQL system database name. ` +
+        'Set DB_NAME to your application database (e.g. 2bhk_db) in App Runner / .env — not "mysql".'
+    );
+  }
+  return effective;
+}
+
 // Create database schema
 async function createDatabaseSchema() {
   let connection;
-  
+
   try {
-    // Connect to MySQL server (without selecting a database) first.
-    // This avoids failures when the target DB doesn't exist yet.
-    const targetDb = dbConfig.database;
+    const targetDb = assertApplicationDatabaseName(dbConfig.database);
     const serverConfig = { ...dbConfig, database: undefined };
 
     connection = await mysql.createConnection(serverConfig);
     console.log('Connected to MySQL server');
 
     if (targetDb) {
-      await connection.execute(
-        `CREATE DATABASE IF NOT EXISTS \`${targetDb}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
-      );
-      console.log(`✓ Ensured database exists: ${targetDb}`);
+      try {
+        await connection.execute(
+          `CREATE DATABASE IF NOT EXISTS ${quoteIdentifier(
+            targetDb
+          )} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+        );
+        console.log(`✓ Ensured database exists: ${targetDb}`);
+      } catch (createDbErr) {
+        const code = createDbErr?.code || createDbErr?.errno;
+        if (
+          code === 'ER_DBACCESS_DENIED_ERROR' ||
+          code === 1044 ||
+          createDbErr?.errno === 1044
+        ) {
+          console.warn(
+            `Could not CREATE DATABASE "${targetDb}" (no permission — common on RDS/Aurora). ` +
+              'Ensure this database already exists in the console, then continuing with tables.'
+          );
+        } else {
+          throw createDbErr;
+        }
+      }
     }
 
     await connection.end();
 
-    // Re-connect with the target database selected, then create tables.
-    connection = await mysql.createConnection(dbConfig);
+    const configWithDb = { ...dbConfig, database: targetDb };
+    connection = await mysql.createConnection(configWithDb);
     console.log('Connected to MySQL database');
 
     // ============================================
