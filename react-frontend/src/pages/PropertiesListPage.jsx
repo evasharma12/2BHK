@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+// Map: kept for re-enable; set PROPERTIES_PAGE_MAP_ENABLED true when Google Maps JS API is fixed.
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import PropertyCard from '../components/PropertyCard';
@@ -13,6 +14,9 @@ const MAP_MARKER_CAP = 300;
 const MARKER_EMPHASIS_ZOOM = 13;
 const MAP_INTERACTION_DEBOUNCE_MS = 300;
 const INDIA_CENTER = { lat: 20.5937, lng: 78.9629 };
+
+/** When false, the page shows only the property grid (no map UI, no Maps API init). */
+const PROPERTIES_PAGE_MAP_ENABLED = false;
 
 const PropertiesListPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -207,12 +211,14 @@ const PropertiesListPage = () => {
   ].filter(Boolean).length;
 
   useEffect(() => {
+    if (!PROPERTIES_PAGE_MAP_ENABLED) return;
     if (!properties.some((property) => property.id === selectedMapProperty?.id)) {
       setSelectedMapProperty(null);
     }
   }, [properties, selectedMapProperty]);
 
   useEffect(() => {
+    if (!PROPERTIES_PAGE_MAP_ENABLED) return undefined;
     if (process.env.NODE_ENV !== 'production') {
       console.info(
         '[Maps Debug] keyPresent=%s keySuffix=%s',
@@ -293,12 +299,14 @@ const PropertiesListPage = () => {
   }, [mapApiKey, mapApiKeySuffix, mapCenter, searchParams]);
 
   useEffect(() => {
+    if (!PROPERTIES_PAGE_MAP_ENABLED) return;
     const map = mapInstanceRef.current;
     if (!map) return;
     map.panTo(mapCenter);
   }, [mapCenter]);
 
   useEffect(() => {
+    if (!PROPERTIES_PAGE_MAP_ENABLED) return;
     const map = mapInstanceRef.current;
     const googleMaps = googleRef.current;
     if (!map || !googleMaps) return;
@@ -408,8 +416,12 @@ const PropertiesListPage = () => {
           </div>
         </div>
 
-        <div className={`properties-layout ${properties.length === 0 ? 'properties-layout--list-only' : ''}`}>
-          {properties.length > 0 && (
+        <div
+          className={`properties-layout ${
+            properties.length === 0 || !PROPERTIES_PAGE_MAP_ENABLED ? 'properties-layout--list-only' : ''
+          }`}
+        >
+          {PROPERTIES_PAGE_MAP_ENABLED && properties.length > 0 && (
             <>
               <div className="mobile-results-toggle" role="tablist" aria-label="Results view toggle">
                 <button
@@ -473,7 +485,11 @@ const PropertiesListPage = () => {
 
           <main className="properties-main">
             {properties.length > 0 ? (
-              <div className={`properties-grid ${mobileResultsView === 'map' ? 'properties-grid--mobile-hidden' : ''}`}>
+              <div
+                className={`properties-grid ${
+                  PROPERTIES_PAGE_MAP_ENABLED && mobileResultsView === 'map' ? 'properties-grid--mobile-hidden' : ''
+                }`}
+              >
                 {properties.map((property) => (
                   <PropertyCard key={property.id} property={property} />
                 ))}
