@@ -134,6 +134,58 @@ const ChatMessage = {
       });
     });
   },
+
+  /**
+   * Per-user counts of unread inbound messages (recipient = other party in thread).
+   * @param {object} [options]
+   * @param {boolean} [options.forDigest=false] — if true, only users with non-empty email,
+   *   email_chat_digest enabled, and not sent a digest in the last 24 hours.
+   * @returns {Promise<Array<{ user_id: number, email: string, full_name: string | null, unread_total: number }>>}
+   */
+  async listUnreadInboundTotalsByUser(options = {}) {
+    const forDigest = Boolean(options.forDigest);
+    const digestClause = forDigest
+      ? `
+        AND COALESCE(u.email_chat_digest, TRUE) = TRUE
+        AND (
+          u.last_chat_digest_sent_at IS NULL
+          OR u.last_chat_digest_sent_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        )
+      `
+      : '';
+
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT
+          u.user_id,
+          u.email,
+          u.full_name,
+          COUNT(*) AS unread_total
+        FROM chat_messages m
+        INNER JOIN chat_threads t ON t.thread_id = m.thread_id
+        INNER JOIN users u ON u.user_id = CASE
+          WHEN m.sender_user_id = t.owner_user_id THEN t.participant_user_id
+          ELSE t.owner_user_id
+        END
+        WHERE m.is_read = 0
+          AND u.email IS NOT NULL
+          AND TRIM(u.email) <> ''
+          ${digestClause}
+        GROUP BY u.user_id, u.email, u.full_name
+        HAVING COUNT(*) > 0
+      `;
+      db.query(sql, (err, rows) => {
+        if (err) return reject(err);
+        const mapped = (rows || []).map((row) => ({
+          user_id: row.user_id,
+          email: row.email,
+          full_name: row.full_name,
+          unread_total: Number(row.unread_total) || 0,
+        }));
+        resolve(mapped);
+      });
+    });
+  },
 };
 
 module.exports = ChatMessage;

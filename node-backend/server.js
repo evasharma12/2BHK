@@ -25,6 +25,7 @@ const ChatThread = require('./models/chatThread.model');
 const ChatMessage = require('./models/chatMessage.model');
 const { emitNewMessage, emitReadReceipt } = require('./services/chatRealtime.service');
 const { setIO, userRoom, threadRoom } = require('./services/socket.service');
+const { registerChatDigestCron } = require('./services/chatDigest.service');
 
 // Initialize Express app
 const app = express();
@@ -302,6 +303,7 @@ async function startServer() {
 ║   Database: Connected ✓                ║
 ╚════════════════════════════════════════╝
       `);
+      registerChatDigestCron();
     });
     
   } catch (error) {

@@ -91,7 +91,50 @@ async function sendFeedbackNotification({ feedbackId, feedbackText, email, phone
   return { sent: true };
 }
 
+function resolveAppPublicUrl() {
+  const raw = process.env.APP_PUBLIC_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+  const first = String(raw).split(',')[0].trim();
+  return first.replace(/\/$/, '');
+}
+
+/**
+ * Daily digest: notify a user of total unread inbound chat messages.
+ * Skips when SMTP is not configured (same pattern as support/feedback).
+ */
+async function sendChatUnreadDigest({ toEmail, fullName, unreadCount, appUrl }) {
+  if (!toEmail || !String(toEmail).trim()) {
+    return { skipped: true, reason: 'recipient email missing' };
+  }
+
+  const transporter = buildTransporter();
+  if (!transporter) return { skipped: true, reason: 'SMTP config missing' };
+
+  const base = (appUrl || resolveAppPublicUrl()).replace(/\/$/, '');
+  const chatsUrl = `${base}/profile?tab=chats`;
+  const n = Math.max(0, Number(unreadCount) || 0);
+  const label = n === 1 ? 'message' : 'messages';
+
+  await transporter.sendMail({
+    from: process.env.SUPPORT_NOTIFICATION_FROM || process.env.SMTP_USER,
+    to: toEmail,
+    subject: 'You have unread messages on 2BHK',
+    text: [
+      `Hi ${fullName || 'there'},`,
+      '',
+      `You have ${n} unread ${label} on 2BHK.`,
+      '',
+      `Open your chats: ${chatsUrl}`,
+      '',
+      '— 2BHK',
+    ].join('\n'),
+  });
+
+  return { sent: true };
+}
+
 module.exports = {
   sendSupportQueryNotification,
   sendFeedbackNotification,
+  sendChatUnreadDigest,
+  resolveAppPublicUrl,
 };

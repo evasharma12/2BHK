@@ -301,7 +301,21 @@ const User = {
         }
       });
     });
-  }
+  },
+
+  async updateLastChatDigestSentAt(userId) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        UPDATE users
+        SET last_chat_digest_sent_at = NOW()
+        WHERE user_id = ?
+      `;
+      db.query(sql, [userId], (err, result) => {
+        if (err) return reject(err);
+        resolve(result.affectedRows > 0);
+      });
+    });
+  },
 };
 
 module.exports = User;

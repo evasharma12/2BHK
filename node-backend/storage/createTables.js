@@ -341,6 +341,44 @@ async function createDatabaseSchema() {
     }
     console.log('✓ Ensured feedback_submissions.status column exists');
 
+    // Users: chat digest preferences and send tracking (idempotent for existing DBs)
+    const [emailChatDigestRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'users'
+        AND COLUMN_NAME = 'email_chat_digest'
+      LIMIT 1
+      `,
+      [dbConfig.database]
+    );
+    if (emailChatDigestRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE users
+        ADD COLUMN email_chat_digest BOOLEAN NOT NULL DEFAULT TRUE
+      `);
+    }
+
+    const [lastChatDigestRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'users'
+        AND COLUMN_NAME = 'last_chat_digest_sent_at'
+      LIMIT 1
+      `,
+      [dbConfig.database]
+    );
+    if (lastChatDigestRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE users
+        ADD COLUMN last_chat_digest_sent_at TIMESTAMP NULL DEFAULT NULL
+      `);
+    }
+    console.log('✓ Ensured users.email_chat_digest and users.last_chat_digest_sent_at exist');
+
     // ============================================
     // 12. INQUIRIES TABLE (Contact requests)
     // ============================================
