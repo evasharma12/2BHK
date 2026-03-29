@@ -1,13 +1,16 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mysql = require('mysql2/promise');
 
-// Use env vars so the same script works for local and production (e.g. Render + PlanetScale)
+// Align with dbConnection.js (DB_* and Railway MYSQL* names)
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || '2bhk_db',
-  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 3306,
+  host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
+  user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
+  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
+  database: process.env.DB_NAME || process.env.MYSQLDATABASE || '2bhk_db',
+  port: (() => {
+    const p = process.env.DB_PORT || process.env.MYSQLPORT;
+    return p ? parseInt(p, 10) : 3306;
+  })(),
 };
 
 // Create database schema
@@ -450,15 +453,17 @@ async function createDatabaseSchema() {
   }
 }
 
-// Run the schema creation
-createDatabaseSchema()
-  .then(() => {
-    console.log('\n🎉 All tables created successfully!');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('Failed to create schema:', error);
-    process.exit(1);
-  });
+// CLI only: `node storage/createTables.js` — do not auto-run when required by server.js
+if (require.main === module) {
+  createDatabaseSchema()
+    .then(() => {
+      console.log('\n🎉 All tables created successfully!');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('Failed to create schema:', error);
+      process.exit(1);
+    });
+}
 
 module.exports = { createDatabaseSchema };

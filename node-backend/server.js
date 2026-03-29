@@ -9,8 +9,9 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-// Import database connection
+// Import database connection and schema bootstrap
 const { testConnection } = require('./storage/dbConnection');
+const { createDatabaseSchema } = require('./storage/createTables');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -285,13 +286,25 @@ function validateStartupConfig() {
 async function startServer() {
   try {
     validateStartupConfig();
-    // Test database connection
-    const dbConnected = await testConnection();
-    
-    if (!dbConnected) {
-      console.error('Failed to connect to database at startup. Continuing so platform health checks can pass; DB-backed routes may fail until DB is reachable.');
+
+    // Ensure DB exists + tables/columns (CREATE IF NOT EXISTS + migrations). Uses its own connection.
+    // Cannot run DDL without connecting first; this runs before the pool test and before accepting HTTP traffic.
+    if (process.env.SKIP_DB_SCHEMA_ON_START !== 'true') {
+      await createDatabaseSchema();
+    } else {
+      console.warn('SKIP_DB_SCHEMA_ON_START=true: skipping createDatabaseSchema() at startup.');
     }
-    
+
+    const dbConnected = await testConnection();
+
+    if (!dbConnected) {
+      console.error(
+        'Failed to connect to database at startup. Continuing so platform health checks can pass; DB-backed routes may fail until DB is reachable.'
+      );
+    }
+
+    const dbLine = dbConnected ? 'Database: Connected ✓' : 'Database: not connected ✗';
+
     // Start server - bind to 0.0.0.0 so Railway/proxy can reach the app
     httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`
@@ -300,7 +313,7 @@ async function startServer() {
 ║   Status: Running ✓                    ║
 ║   Port: ${PORT}                           ║
 ║   Environment: ${process.env.NODE_ENV || 'development'}        ║
-║   Database: Connected ✓                ║
+║   ${dbLine}                    ║
 ╚════════════════════════════════════════╝
       `);
       registerChatDigestCron();
