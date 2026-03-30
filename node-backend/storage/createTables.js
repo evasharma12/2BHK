@@ -79,7 +79,7 @@ async function createDatabaseSchema() {
 
     const configWithDb = { ...dbConfig, database: targetDb };
     connection = await mysql.createConnection(configWithDb);
-    console.log('Connected to MySQL database');
+    console.log(`Connected to MySQL database "${targetDb}" — running CREATE TABLE IF NOT EXISTS / migrations`);
 
     // ============================================
     // 1. USERS TABLE
