@@ -6,6 +6,27 @@ import ContactOwner from '../components/ContactOwner';
 import { api } from '../utils/api';
 import './PropertyDetailPage.css';
 
+function normalizeIndiaCoordinates(latValue, lngValue) {
+  const lat = Number(latValue);
+  const lng = Number(lngValue);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { lat: null, lng: null };
+  }
+
+  const inIndia = (xLat, xLng) => xLat >= 6 && xLat <= 38 && xLng >= 68 && xLng <= 98;
+
+  if (inIndia(lat, lng)) {
+    return { lat, lng };
+  }
+
+  // Legacy safeguard: if stored as lat/lng swapped, auto-correct for map rendering.
+  if (inIndia(lng, lat)) {
+    return { lat: lng, lng: lat };
+  }
+
+  return { lat, lng };
+}
+
 const PropertyDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -32,6 +53,7 @@ const PropertyDetailPage = () => {
 
   const mapBackendToFrontend = (p) => {
     if (!p) return null;
+    const normalizedCoords = normalizeIndiaCoordinates(p.lat, p.lng);
     return {
       id: p.property_id,
       ownerId: p.owner_id,
@@ -65,8 +87,8 @@ const PropertyDetailPage = () => {
       ownerPhone: p.owner_phone,
       images: p.images || [],
       amenities: p.amenities || [],
-      lat: p.lat != null ? Number(p.lat) : null,
-      lng: p.lng != null ? Number(p.lng) : null,
+      lat: normalizedCoords.lat,
+      lng: normalizedCoords.lng,
     };
   };
 

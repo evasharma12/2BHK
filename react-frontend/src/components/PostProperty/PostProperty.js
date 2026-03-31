@@ -137,11 +137,17 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
         }
       }
 
+      const selectedAddress = String(formData.address || '').trim();
+      const customAddressDetails = String(formData.addressText || '').trim();
+      const fullAddressText = [selectedAddress, customAddressDetails]
+        .filter(Boolean)
+        .join(', ');
+
       const payload = {
         property_for: formData.propertyFor,
         property_type: formData.propertyType,
         bhk_type: formData.bhk,
-        address_text: String(formData.addressText || formData.address || '').trim() || null,
+        address_text: fullAddressText || null,
         latitude: Number(formData.latitude),
         longitude: Number(formData.longitude),
         locality: formData.locality,

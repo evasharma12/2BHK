@@ -32,6 +32,16 @@ class GoogleAuthService {
       
     } catch (error) {
       console.error('Error verifying Google token:', error);
+      const netCode = error?.code || error?.cause?.code || error?.error?.code;
+      const isNetwork =
+        ['ETIMEDOUT', 'ENOTFOUND', 'ECONNRESET', 'ECONNREFUSED', 'EAI_AGAIN'].includes(netCode) ||
+        String(error?.message || '').includes('Failed to retrieve verification certificates');
+      if (isNetwork) {
+        throw new Error(
+          'Cannot reach Google to verify sign-in (network timeout). If the API runs in a VPC (e.g. App Runner connector), ' +
+            'ensure private subnets route 0.0.0.0/0 to a NAT Gateway so outbound HTTPS to www.googleapis.com works.'
+        );
+      }
       throw new Error('Invalid Google token');
     }
   }
