@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './PropertySearchForm.css';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../utils/api';
@@ -23,6 +23,9 @@ const PropertySearchForm = () => {
     furnishing: ''
   });
 
+  /** When true, the next `filters.location` change came from picking a suggestion — do not run autocomplete again. */
+  const skipAutocompleteForNextLocationChangeRef = useRef(false);
+
   useEffect(() => {
     setCurrentUser(api.getUser());
   }, []);
@@ -32,6 +35,14 @@ const PropertySearchForm = () => {
   };
 
   useEffect(() => {
+    if (skipAutocompleteForNextLocationChangeRef.current) {
+      skipAutocompleteForNextLocationChangeRef.current = false;
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      setIsAddressLoading(false);
+      return;
+    }
+
     const query = (filters.location || '').trim();
     if (query.length < 3) {
       setAddressSuggestions([]);
@@ -40,14 +51,17 @@ const PropertySearchForm = () => {
       return;
     }
 
+    let cancelled = false;
     const timeoutId = setTimeout(async () => {
       setIsAddressLoading(true);
       setLocationAssistError('');
       try {
         const suggestions = await api.getAddressSuggestions(query);
+        if (cancelled) return;
         setAddressSuggestions(suggestions);
         setShowAddressSuggestions(true);
       } catch (error) {
+        if (cancelled) return;
         setAddressSuggestions([]);
         setShowAddressSuggestions(false);
         setLocationAssistError(
@@ -55,17 +69,23 @@ const PropertySearchForm = () => {
             'Location suggestions unavailable right now. You can still search by typing location text.'
         );
       } finally {
-        setIsAddressLoading(false);
+        if (!cancelled) setIsAddressLoading(false);
       }
     }, 350);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [filters.location]);
 
   const handleSuggestionSelect = async (suggestion) => {
     const description = suggestion?.description || '';
-    handleFilterChange('location', description);
+    skipAutocompleteForNextLocationChangeRef.current = true;
+    setAddressSuggestions([]);
     setShowAddressSuggestions(false);
+    setIsAddressLoading(false);
+    handleFilterChange('location', description);
     if (!suggestion?.place_id) return;
     try {
       const geo = await api.geocodeAddress({ placeId: suggestion.place_id });

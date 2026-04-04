@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './PropertyFilters.css';
 import { api } from '../utils/api';
 
@@ -12,6 +12,7 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
   const [locationAssistError, setLocationAssistError] = useState('');
+  const skipAutocompleteForNextLocationChangeRef = useRef(false);
 
   useEffect(() => {
     setLocalMinPrice(filters.minPrice || '');
@@ -24,6 +25,14 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
   }, [filters.location]);
 
   useEffect(() => {
+    if (skipAutocompleteForNextLocationChangeRef.current) {
+      skipAutocompleteForNextLocationChangeRef.current = false;
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      setIsAddressLoading(false);
+      return;
+    }
+
     const query = localLocation.trim();
     if (query.length < 3) {
       setAddressSuggestions([]);
@@ -32,14 +41,17 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
       return;
     }
 
+    let cancelled = false;
     const timeoutId = setTimeout(async () => {
       setIsAddressLoading(true);
       setLocationAssistError('');
       try {
         const suggestions = await api.getAddressSuggestions(query);
+        if (cancelled) return;
         setAddressSuggestions(suggestions);
         setShowAddressSuggestions(true);
       } catch (error) {
+        if (cancelled) return;
         setAddressSuggestions([]);
         setShowAddressSuggestions(false);
         setLocationAssistError(
@@ -47,11 +59,14 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
             'Location suggestions unavailable right now. You can still search by typing location text.'
         );
       } finally {
-        setIsAddressLoading(false);
+        if (!cancelled) setIsAddressLoading(false);
       }
     }, 350);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [localLocation]);
 
   const handleChange = (name, value) => {
@@ -67,9 +82,12 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
 
   const handleLocationSuggestionSelect = async (suggestion) => {
     const description = suggestion?.description || '';
+    skipAutocompleteForNextLocationChangeRef.current = true;
+    setAddressSuggestions([]);
+    setShowAddressSuggestions(false);
+    setIsAddressLoading(false);
     setLocalLocation(description);
     const next = { ...filters, location: description };
-    setShowAddressSuggestions(false);
     if (!suggestion?.place_id) {
       onFilterChange(next);
       return;

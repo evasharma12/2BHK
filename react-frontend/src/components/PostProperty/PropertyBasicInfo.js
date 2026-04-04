@@ -13,6 +13,7 @@ const PropertyBasicInfo = ({
   const [addressError, setAddressError] = useState('');
   const [mapLocation, setMapLocation] = useState(null);
   const addressWrapRef = useRef(null);
+  const skipAutocompleteForNextAddressChangeRef = useRef(false);
 
   const mapEmbedUrl = useMemo(() => {
     if (!mapLocation?.lat || !mapLocation?.lng) return '';
@@ -36,6 +37,14 @@ const PropertyBasicInfo = ({
   }, [formData.latitude, formData.longitude]);
 
   useEffect(() => {
+    if (skipAutocompleteForNextAddressChangeRef.current) {
+      skipAutocompleteForNextAddressChangeRef.current = false;
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      setIsAddressLoading(false);
+      return;
+    }
+
     const query = (formData.address || '').trim();
     if (query.length < 3) {
       setAddressSuggestions([]);
@@ -44,22 +53,28 @@ const PropertyBasicInfo = ({
       return;
     }
 
+    let cancelled = false;
     const timeoutId = setTimeout(async () => {
       setIsAddressLoading(true);
       setAddressError('');
       try {
         const suggestions = await api.getAddressSuggestions(query);
+        if (cancelled) return;
         setAddressSuggestions(suggestions);
         setShowAddressSuggestions(true);
       } catch (err) {
+        if (cancelled) return;
         setAddressSuggestions([]);
         setAddressError(err.message || 'Failed to fetch address suggestions');
       } finally {
-        setIsAddressLoading(false);
+        if (!cancelled) setIsAddressLoading(false);
       }
     }, 350);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [formData.address]);
 
   const getAddressPart = (components, type) => {
@@ -93,7 +108,10 @@ const PropertyBasicInfo = ({
   };
 
   const handleAddressSuggestionSelect = async (suggestion) => {
+    skipAutocompleteForNextAddressChangeRef.current = true;
+    setAddressSuggestions([]);
     setShowAddressSuggestions(false);
+    setIsAddressLoading(false);
     updateMultipleFields({
       address: suggestion.description || '',
       addressPlaceId: suggestion.place_id || '',
@@ -103,6 +121,7 @@ const PropertyBasicInfo = ({
     if (!suggestion.place_id) return;
     try {
       const geo = await api.geocodeAddress({ placeId: suggestion.place_id });
+      skipAutocompleteForNextAddressChangeRef.current = true;
       applyGeocodeResultToForm(geo, suggestion.description);
     } catch (err) {
       setAddressError(err.message || 'Failed to locate selected address');
