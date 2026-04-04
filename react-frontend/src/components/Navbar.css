@@ -232,155 +232,50 @@
   transform: translateY(-1px);
 }
 
-/* Menu toggle wrapper - the actual click target on mobile */
-.navbar__menu-toggle-wrap {
+/* Desktop-only: full navbar actions (hidden on small screens) */
+.navbar__desktop-only {
+  display: inline-flex;
+}
+
+/* Mobile: prominent Sign in (hidden on desktop) */
+.navbar__mobile-signin {
+  display: none;
+}
+
+/* Mobile: avatar-only profile entry (hidden on desktop) */
+.navbar__mobile-profile-icon {
   display: none;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  padding: 0.5rem;
-  margin: -0.5rem;
-  border-radius: 8px;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.navbar__menu-toggle-wrap:hover {
-  background: #f1f5f9;
-}
-
-/* Menu Toggle Button - hidden on desktop, shown on mobile (visual only, wrapper handles click) */
-.navbar__menu-toggle {
-  display: none;
+  padding: 0.25rem;
+  min-width: 48px;
+  min-height: 48px;
+  margin: -0.25rem;
+  border: none;
+  border-radius: 999px;
   background: transparent;
-  color: #334155;
-  border: none;
-  border-radius: 8px;
-  padding: 0 1rem;
-  min-height: 40px;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
   cursor: pointer;
-  font-family: inherit;
-  font-size: 0.875rem;
-  transition: background 0.2s, color 0.2s;
-  pointer-events: none; /* let wrapper receive clicks */
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.navbar__menu-toggle:hover {
+.navbar__mobile-profile-icon:hover {
   background: #f1f5f9;
-  color: #1e293b;
 }
 
-.navbar__menu-toggle--open {
-  background: #f1f5f9;
-  color: #2563eb;
+.navbar__mobile-profile-icon:active {
+  background: #e2e8f0;
 }
 
-.navbar__menu-toggle svg {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+.navbar__mobile-profile-icon .navbar__profile-avatar {
+  width: 36px;
+  height: 36px;
+  font-size: 0.8125rem;
 }
 
-.navbar__menu-text {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-/* Mobile dropdown - when rendered inside navbar (legacy, kept for reference) */
-.navbar__dropdown {
-  display: none;
-}
-
-/* Mobile dropdown PORTAL - rendered at document.body, so it never blocks the menu button */
-.navbar__dropdown-portal {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: auto;
-}
-
-.navbar__dropdown-portal .navbar__dropdown-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.4);
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.navbar__dropdown-portal .navbar__dropdown-panel {
-  position: absolute;
-  top: 60px; /* below navbar height on mobile */
-  left: 0;
-  right: 0;
-  background: #fff;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-  padding: 0.5rem 0;
-  max-height: 70vh;
-  overflow-y: auto;
-  transform: none;
-  opacity: 1;
-  visibility: visible;
-  animation: navbar-dropdown-in 0.2s ease;
-}
-
-@keyframes navbar-dropdown-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.navbar__dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.875rem 1.25rem;
-  border: none;
-  background: none;
-  color: #334155;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  font-family: inherit;
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-
-.navbar__dropdown-item:hover {
-  background: #f1f5f9;
-  color: #1e293b;
-}
-
-.navbar__dropdown-item--profile {
-  border-top: 1px solid #e2e8f0;
-  margin-top: 0.25rem;
-  padding-top: 1rem;
-}
-
-.navbar__dropdown-item--logout {
-  color: #dc2626;
-}
-
-.navbar__dropdown-item--logout:hover {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-/* Responsive: desktop first - action items visible, menu hidden */
+/* Responsive: mobile shows Sign in or avatar only */
 @media (max-width: 768px) {
   .navbar__container {
-    position: relative;
     padding: 0 1rem;
     height: 60px;
   }
@@ -389,31 +284,25 @@
     font-size: 1.25rem;
   }
 
-  /* On mobile: hide inline actions, show menu toggle */
-  .navbar__action-item {
+  .navbar__desktop-only {
     display: none !important;
   }
 
-  .navbar__actions {
-    position: relative;
-    z-index: 1001; /* above dropdown so menu button is always clickable */
-  }
-
-  .navbar__menu-toggle-wrap {
-    display: inline-flex;
-    min-width: 48px;
-    min-height: 48px;
-  }
-
-  .navbar__menu-toggle {
-    display: inline-flex;
-    pointer-events: none;
-    min-width: 44px;
+  .navbar__mobile-signin {
+    display: inline-flex !important;
     min-height: 44px;
+    padding: 0 1.35rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
   }
 
-  .navbar__dropdown {
-    display: block;
+  .navbar__mobile-profile-icon {
+    display: inline-flex !important;
+  }
+
+  .navbar__actions {
+    gap: 0.5rem;
   }
 }
 
@@ -426,12 +315,9 @@
     font-size: 1.125rem;
   }
 
-  .navbar__menu-text {
-    display: none;
-  }
-
-  .navbar__menu-toggle {
-    padding: 0 0.75rem;
+  .navbar__mobile-signin {
+    padding: 0 1.15rem;
+    font-size: 0.875rem;
   }
 }
 

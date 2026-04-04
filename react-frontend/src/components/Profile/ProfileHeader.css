@@ -135,10 +135,19 @@
     height: 17px !important;
   }
   
+  .profile-header__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+
   /* Edit Button */
   .profile-header__edit-btn {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
     background: #fff;
@@ -151,14 +160,34 @@
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
-    flex-shrink: 0;
-    align-self: flex-start;
   }
   
   .profile-header__edit-btn:hover {
     border-color: #2563eb;
     color: #2563eb;
     background: #eff6ff;
+  }
+
+  .profile-header__logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.65rem 1.25rem;
+    background: transparent;
+    border: 2px solid #fecaca;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #b91c1c;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .profile-header__logout-btn:hover {
+    background: #fef2f2;
+    border-color: #f87171;
+    color: #991b1b;
   }
   
   /* Responsive */
@@ -174,7 +203,12 @@
       font-size: 1.5rem;
     }
   
-    .profile-header__edit-btn {
+    .profile-header__actions {
+      width: 100%;
+    }
+
+    .profile-header__edit-btn,
+    .profile-header__logout-btn {
       width: 100%;
       justify-content: center;
     }

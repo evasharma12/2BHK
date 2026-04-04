@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ProfileHeader from '../components/Profile/ProfileHeader';
 import ProfileTabs from '../components/Profile/ProfileTabs';
 import SavedProperties, { MyListings } from '../components/Profile/SavedProperties';
 import ChatList from '../components/Chat/ChatList';
 import EditProfileModal from '../components/Profile/EditProfileModal';
 import { api } from '../utils/api';
+import { useToast } from '../context/ToastContext';
 import './ProfilePage.css';
 
 const isOwnerType = (userType) => userType === 'owner' || userType === 'both';
 
 const ProfilePage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
@@ -68,6 +71,12 @@ const ProfilePage = () => {
     setShowEditModal(false);
   };
 
+  const handleLogout = () => {
+    api.clearAuthData();
+    navigate('/');
+    showToast('Successfully logged out');
+  };
+
   const getTabsForUserType = (userType) => {
     if (isOwnerType(userType)) {
       return [
@@ -120,6 +129,7 @@ const ProfilePage = () => {
         <ProfileHeader
           user={user}
           onEditClick={() => setShowEditModal(true)}
+          onLogout={handleLogout}
         />
 
         <div className="profile-page__body">

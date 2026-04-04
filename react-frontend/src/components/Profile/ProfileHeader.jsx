@@ -8,7 +8,7 @@ const USER_TYPE_LABELS = {
   both:   { label: 'Owner & Renter', color: '#b45309', bg: '#fef3c7' },
 };
 
-const ProfileHeader = ({ user, onEditClick }) => {
+const ProfileHeader = ({ user, onEditClick, onLogout }) => {
   const badge = USER_TYPE_LABELS[user.user_type] || USER_TYPE_LABELS.renter;
 
   const initials = user.full_name
@@ -81,14 +81,20 @@ const ProfileHeader = ({ user, onEditClick }) => {
         </div>
       </div>
 
-      {/* Edit Button */}
-      <button className="profile-header__edit-btn" onClick={onEditClick}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-        </svg>
-        Edit Profile
-      </button>
+      <div className="profile-header__actions">
+        <button type="button" className="profile-header__edit-btn" onClick={onEditClick}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Edit Profile
+        </button>
+        {typeof onLogout === 'function' && (
+          <button type="button" className="profile-header__logout-btn" onClick={onLogout}>
+            Log out
+          </button>
+        )}
+      </div>
     </div>
   );
 };

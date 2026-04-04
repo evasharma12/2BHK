@@ -646,6 +646,9 @@ export const api = {
   clearAuthData() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('2bhk-auth-changed'));
+    }
   },
 
   // Helper to check if user is authenticated
