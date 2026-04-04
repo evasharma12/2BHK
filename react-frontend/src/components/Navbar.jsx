@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
+import { useToast } from '../context/ToastContext';
 import './Navbar.css';
 
 const Navbar = () => {
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -75,6 +77,7 @@ const Navbar = () => {
     setCurrentUser(null);
     setMenuOpen(false);
     navigate('/');
+    showToast('Successfully logged out');
   };
 
   const closeMenu = () => setMenuOpen(false);

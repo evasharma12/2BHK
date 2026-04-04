@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { ToastProvider, AuthToastOnLoad } from './context/ToastContext';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -18,24 +19,27 @@ const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_AUTH_CLIENT_ID;
 function App() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <Router>
-        <div className="App">
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/login" element={<LoginPage defaultMode="login" />} />
-            <Route path="/signup" element={<LoginPage defaultMode="signup" />} />
-            <Route path="/post-property" element={<PostPropertyPage />} />
-            <Route path="/properties" element={<PropertiesListPage />} />
-            <Route path="/properties/:id" element={<PropertyDetailPage />} />
-            <Route path="/properties/:id/edit" element={<EditPropertyPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/customer-care" element={<CustomerCarePage />} />
-            <Route path="/feedback" element={<FeedbackPage />} />
-          </Routes>
-        </div>
-      </Router>
+      <ToastProvider>
+        <Router>
+          <AuthToastOnLoad />
+          <div className="App">
+            <Navbar />
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/login" element={<LoginPage defaultMode="login" />} />
+              <Route path="/signup" element={<LoginPage defaultMode="signup" />} />
+              <Route path="/post-property" element={<PostPropertyPage />} />
+              <Route path="/properties" element={<PropertiesListPage />} />
+              <Route path="/properties/:id" element={<PropertyDetailPage />} />
+              <Route path="/properties/:id/edit" element={<EditPropertyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/customer-care" element={<CustomerCarePage />} />
+              <Route path="/feedback" element={<FeedbackPage />} />
+            </Routes>
+          </div>
+        </Router>
+      </ToastProvider>
     </GoogleOAuthProvider>
   );
 }

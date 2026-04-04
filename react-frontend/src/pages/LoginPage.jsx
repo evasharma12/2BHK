@@ -22,6 +22,11 @@ const LoginPage = ({ defaultMode = 'login' }) => {
       // Store user data and token
       api.saveAuthData(data.data.token, data.data.user);
 
+      sessionStorage.setItem(
+        '2bhk_auth_toast',
+        isLoginMode ? 'login' : 'signup'
+      );
+
       // Redirect to requested page (e.g. /post-property) or home
       window.location.href = redirectTo;
     } catch (error) {
