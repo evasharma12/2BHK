@@ -26,6 +26,29 @@ const formatLastMessageTime = (value) => {
   });
 };
 
+/** Time (and short date when not today) shown inside each bubble, WhatsApp-style. */
+const formatMessageTimestamp = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  const timeStr = date.toLocaleTimeString('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  if (isToday) return timeStr;
+  if (isYesterday) return `Yesterday, ${timeStr}`;
+  return `${date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, ${timeStr}`;
+};
+
 const getPropertyContext = (thread) => {
   const bhk = thread?.bhk_type ? `${thread.bhk_type} BHK` : 'Property';
   const locality = thread?.locality || 'Unknown locality';
@@ -233,7 +256,12 @@ const ChatList = ({ userType }) => {
                         className={`chat-message-row ${mine ? 'chat-message-row--mine' : ''}`}
                       >
                         <div className={`chat-message-bubble ${mine ? 'chat-message-bubble--mine' : ''}`}>
-                          <div className="chat-message-text">{message.message_text}</div>
+                          <div className="chat-message-inner">
+                            <div className="chat-message-text">{message.message_text}</div>
+                            <span className="chat-message-meta" title={message.created_at || undefined}>
+                              {formatMessageTimestamp(message.created_at)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );
