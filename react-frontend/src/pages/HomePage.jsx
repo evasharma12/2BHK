@@ -12,7 +12,7 @@ const HomePage = () => {
           <div className="home-footer__column">
             <h4>About us</h4>
             <ul>
-              <li><Link to="/">2BHK</Link></li>
+              <li><Link to="/">PropertyBazaar</Link></li>
               <li><span style={{ fontSize: '0.875rem', color: '#64748b' }}>Find your perfect home</span></li>
             </ul>
           </div>

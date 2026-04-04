@@ -116,7 +116,7 @@ const Navbar = () => {
             </svg>
           </div>
           <span className="navbar__logo-text">
-            2<span className="navbar__logo-text--bold">BHK</span>
+            Property<span className="navbar__logo-text--bold">Bazaar</span>
           </span>
         </Link>
 
