@@ -23,30 +23,54 @@ function getFirebaseAuth() {
   return getAuth(app);
 }
 
-export function getRecaptchaVerifier(containerId) {
+/** One RecaptchaVerifier per container; reusing it avoids "already rendered in this element". */
+const recaptchaByContainerId = new Map();
+
+/**
+ * Returns an existing invisible reCAPTCHA for this container, or creates it once.
+ * Do not call `new RecaptchaVerifier` again for the same DOM node.
+ */
+export function getOrCreateRecaptchaVerifier(containerId) {
   const auth = getFirebaseAuth();
-  if (!window.__phoneRecaptchaByContainer) {
-    window.__phoneRecaptchaByContainer = {};
-  }
-
-  const existing = window.__phoneRecaptchaByContainer[containerId];
+  const existing = recaptchaByContainerId.get(containerId);
   if (existing) {
-    try {
-      existing.clear();
-    } catch (_) {}
-    delete window.__phoneRecaptchaByContainer[containerId];
+    return existing;
   }
 
-  const containerEl = typeof document !== 'undefined' ? document.getElementById(containerId) : null;
-  if (containerEl) {
-    containerEl.innerHTML = '';
+  const containerEl =
+    typeof document !== 'undefined' ? document.getElementById(containerId) : null;
+  if (!containerEl) {
+    throw new Error('reCAPTCHA container is not in the document yet');
   }
 
   const verifier = new RecaptchaVerifier(auth, containerId, {
     size: 'invisible',
   });
-  window.__phoneRecaptchaByContainer[containerId] = verifier;
+  recaptchaByContainerId.set(containerId, verifier);
   return verifier;
+}
+
+/**
+ * Removes the widget and listeners; call on unmount or before replacing the container.
+ */
+export function clearRecaptchaVerifier(containerId) {
+  const verifier = recaptchaByContainerId.get(containerId);
+  if (verifier) {
+    try {
+      verifier.clear();
+    } catch (_) {
+      /* ignore */
+    }
+    recaptchaByContainerId.delete(containerId);
+  }
+
+  if (typeof document === 'undefined') return;
+  const el = document.getElementById(containerId);
+  if (el) {
+    while (el.firstChild) {
+      el.removeChild(el.firstChild);
+    }
+  }
 }
 
 export async function sendPhoneOtp(phoneE164, recaptchaVerifier) {
