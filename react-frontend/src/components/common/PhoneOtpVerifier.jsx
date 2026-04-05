@@ -1,6 +1,10 @@
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
-import { getRecaptchaVerifier, sendPhoneOtp } from '../../utils/firebasePhoneAuth';
+import {
+  clearRecaptchaVerifier,
+  getOrCreateRecaptchaVerifier,
+  sendPhoneOtp,
+} from '../../utils/firebasePhoneAuth';
 import './PhoneOtpVerifier.css';
 
 const PhoneOtpVerifier = ({ userId, phoneNumber, onVerifiedChange }) => {
@@ -52,6 +56,12 @@ const PhoneOtpVerifier = ({ userId, phoneNumber, onVerifiedChange }) => {
     };
   }, [userId, normalizedPhone, isPhoneValid, onVerifiedChange]);
 
+  useEffect(() => {
+    return () => {
+      clearRecaptchaVerifier(recaptchaContainerId);
+    };
+  }, [recaptchaContainerId]);
+
   const handleSendOtp = async () => {
     if (!isPhoneValid) {
       setStatus('error');
@@ -61,7 +71,7 @@ const PhoneOtpVerifier = ({ userId, phoneNumber, onVerifiedChange }) => {
     setStatus('sending');
     setMessage('');
     try {
-      const verifier = getRecaptchaVerifier(recaptchaContainerId);
+      const verifier = getOrCreateRecaptchaVerifier(recaptchaContainerId);
       const result = await sendPhoneOtp(phoneE164, verifier);
       setConfirmationResult(result);
       setStatus('sent');
