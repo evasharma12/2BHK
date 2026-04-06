@@ -133,6 +133,16 @@ function parseRadiusSearchQuery(query) {
 }
 
 class PropertyController {
+  static parseRentedViaHimHomesInput(value) {
+    if (value === true || value === false) return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'yes' || normalized === 'true') return true;
+      if (normalized === 'no' || normalized === 'false') return false;
+    }
+    return null;
+  }
+
   static async createProperty(req, res) {
     try {
       const ownerId = req.user.user_id;
@@ -162,7 +172,6 @@ class PropertyController {
         'carpet_area',
         'total_floors',
         'floor_number',
-        'property_age',
         'furnishing',
         'expected_price',
       ];
@@ -198,7 +207,8 @@ class PropertyController {
         bedrooms: body.bedrooms || null,
         bathrooms: body.bathrooms || null,
         balconies: body.balconies || 0,
-        property_age: body.property_age,
+        // DB schema requires property_age; default when omitted from optional UI.
+        property_age: body.property_age || '1-3',
         furnishing: body.furnishing,
         facing: body.facing || null,
         expected_price: body.expected_price,
@@ -400,7 +410,18 @@ class PropertyController {
           message: 'Unauthorized',
         });
       }
-      const affectedRows = await Property.deleteById(propertyId, userId);
+
+      const rentedViaHimHomes = PropertyController.parseRentedViaHimHomesInput(
+        req.body?.rented_via_himhomes
+      );
+      if (rentedViaHimHomes === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide rented_via_himhomes as yes/no.',
+        });
+      }
+
+      const affectedRows = await Property.deleteById(propertyId, userId, rentedViaHimHomes);
       if (affectedRows === 0) {
         return res.status(404).json({
           success: false,
@@ -442,7 +463,6 @@ class PropertyController {
         'carpet_area',
         'total_floors',
         'floor_number',
-        'property_age',
         'furnishing',
         'expected_price',
       ];
@@ -476,7 +496,8 @@ class PropertyController {
         bedrooms: body.bedrooms || null,
         bathrooms: body.bathrooms || null,
         balconies: body.balconies != null ? body.balconies : 0,
-        property_age: body.property_age,
+        // DB schema requires property_age; default when omitted from optional UI.
+        property_age: body.property_age || '1-3',
         furnishing: body.furnishing,
         facing: body.facing || null,
         expected_price: body.expected_price,

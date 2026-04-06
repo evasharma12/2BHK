@@ -269,7 +269,28 @@ async function createDatabaseSchema() {
     console.log('✓ Created saved_properties table');
 
     // ============================================
-    // 8. CHAT_THREADS TABLE
+    // 8. PROPERTY_DELETION_FEEDBACK TABLE
+    // ============================================
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS property_deletion_feedback (
+        feedback_id INT AUTO_INCREMENT PRIMARY KEY,
+        property_id INT NOT NULL,
+        owner_id INT NULL,
+        rented_via_himhomes BOOLEAN NOT NULL,
+        property_for ENUM('rent', 'sell') NULL,
+        property_type VARCHAR(64) NULL,
+        city VARCHAR(100) NULL,
+        locality VARCHAR(255) NULL,
+        deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (owner_id) REFERENCES users(user_id) ON DELETE SET NULL,
+        INDEX idx_owner_deleted_at (owner_id, deleted_at),
+        INDEX idx_rented_via_himhomes (rented_via_himhomes)
+      )
+    `);
+    console.log('✓ Created property_deletion_feedback table');
+
+    // ============================================
+    // 9. CHAT_THREADS TABLE
     // ============================================
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS chat_threads (
@@ -291,7 +312,7 @@ async function createDatabaseSchema() {
     console.log('✓ Created chat_threads table');
 
     // ============================================
-    // 9. CHAT_MESSAGES TABLE
+    // 10. CHAT_MESSAGES TABLE
     // ============================================
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS chat_messages (
@@ -312,7 +333,7 @@ async function createDatabaseSchema() {
     console.log('✓ Created chat_messages table');
 
     // ============================================
-    // 10. SUPPORT_QUERIES TABLE (Customer care submissions)
+    // 11. SUPPORT_QUERIES TABLE (Customer care submissions)
     // ============================================
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS support_queries (
@@ -330,7 +351,7 @@ async function createDatabaseSchema() {
     console.log('✓ Created support_queries table');
 
     // ============================================
-    // 11. FEEDBACK_SUBMISSIONS TABLE
+    // 12. FEEDBACK_SUBMISSIONS TABLE
     // ============================================
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS feedback_submissions (
@@ -425,7 +446,7 @@ async function createDatabaseSchema() {
     console.log('✓ Ensured users.email_chat_digest and users.last_chat_digest_sent_at exist');
 
     // ============================================
-    // 12. INQUIRIES TABLE (Contact requests)
+    // 13. INQUIRIES TABLE (Contact requests)
     // ============================================
     // await connection.execute(`
     //   CREATE TABLE IF NOT EXISTS inquiries (
@@ -451,7 +472,7 @@ async function createDatabaseSchema() {
     // console.log('✓ Created inquiries table');
 
     // ============================================
-    // 13. INSERT DEFAULT AMENITIES
+    // 14. INSERT DEFAULT AMENITIES
     // ============================================
     // await connection.execute(`
     //   INSERT IGNORE INTO amenities (amenity_name, amenity_slug, icon, category) VALUES

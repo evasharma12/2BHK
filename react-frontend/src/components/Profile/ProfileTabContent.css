@@ -702,6 +702,86 @@
   .empty-state__btn:hover {
     background: #1d4ed8;
   }
+
+  /* ─── Generic Modal ────────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 460px;
+    background: #fff;
+    border-radius: 14px;
+    padding: 1.2rem 1.25rem;
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.24);
+  }
+
+  .modal-card__title {
+    margin: 0;
+    color: #0f172a;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+
+  .modal-card__actions {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .modal-card__btn {
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .modal-card__btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+  .modal-card__btn--primary {
+    background: #16a34a;
+    color: #fff;
+  }
+
+  .modal-card__btn--primary:hover:not(:disabled) {
+    background: #15803d;
+  }
+
+  .modal-card__btn--secondary {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  .modal-card__btn--secondary:hover:not(:disabled) {
+    background: #cbd5e1;
+  }
+
+  .modal-card__btn--ghost {
+    background: transparent;
+    color: #64748b;
+  }
+
+  .modal-card__btn--ghost:hover:not(:disabled) {
+    background: #f1f5f9;
+  }
   
   /* ─── Skeleton Loader ──────────────────────────────────────────── */
   .tab-loader {

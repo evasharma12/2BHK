@@ -19,6 +19,7 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,18 +78,54 @@ const ProfilePage = () => {
     showToast('Successfully logged out');
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    let intervalId = null;
+
+    const loadUnreadChatCount = async () => {
+      if (!user) {
+        if (!cancelled) setUnreadChatCount(0);
+        return;
+      }
+
+      try {
+        const response = await api.getChatThreads();
+        const threads = Array.isArray(response?.data) ? response.data : [];
+        const unread = threads.reduce((sum, thread) => {
+          const count = Number(thread?.unread_count);
+          return sum + (Number.isFinite(count) ? count : 0);
+        }, 0);
+        if (!cancelled) setUnreadChatCount(unread);
+      } catch (_) {
+        if (!cancelled) setUnreadChatCount(0);
+      }
+    };
+
+    loadUnreadChatCount();
+    if (user) {
+      intervalId = window.setInterval(loadUnreadChatCount, 30000);
+    }
+
+    return () => {
+      cancelled = true;
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [user]);
+
   const getTabsForUserType = (userType) => {
+    const chatsCount = unreadChatCount > 0 ? (unreadChatCount > 99 ? '99+' : unreadChatCount) : null;
+
     if (isOwnerType(userType)) {
       return [
         { id: 'listings',  label: 'Listed Properties', icon: '🏠', count: null },
-        { id: 'chats', label: 'Chats', icon: '💬', count: null },
+        { id: 'chats', label: 'Chats', icon: '💬', count: chatsCount },
         { id: 'saved',     label: 'Saved Properties',  icon: '❤️', count: null },
       ];
     }
     // Renters/buyers: Saved Properties and Chats
     return [
       { id: 'saved', label: 'Saved Properties', icon: '❤️', count: null },
-      { id: 'chats', label: 'Chats', icon: '💬', count: null },
+      { id: 'chats', label: 'Chats', icon: '💬', count: chatsCount },
     ];
   };
 

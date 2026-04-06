@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
@@ -43,6 +43,8 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const isEditMode = Boolean(propertyId);
+  const currentUserId = api.getUser()?.user_id || 'anonymous';
+  const draftStorageKey = `post-property-draft:${isEditMode ? `edit:${propertyId}` : 'new'}:${currentUserId}`;
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -51,6 +53,54 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
   );
 
   const totalSteps = 6;
+
+  useEffect(() => {
+    if (isEditMode) return;
+    try {
+      const rawDraft = localStorage.getItem(draftStorageKey);
+      if (!rawDraft) return;
+      const parsedDraft = JSON.parse(rawDraft);
+      const draftStep = Number(parsedDraft?.currentStep);
+      const draftFormData = parsedDraft?.formData;
+
+      if (Number.isInteger(draftStep) && draftStep >= 1 && draftStep <= totalSteps) {
+        setCurrentStep(draftStep);
+      }
+
+      if (draftFormData && typeof draftFormData === 'object') {
+        setFormData((prev) => ({
+          ...prev,
+          ...draftFormData,
+          amenities: Array.isArray(draftFormData.amenities) ? draftFormData.amenities : prev.amenities,
+          images: Array.isArray(draftFormData.images) ? draftFormData.images : prev.images,
+        }));
+      }
+    } catch (_) {}
+  }, [draftStorageKey, isEditMode, totalSteps]);
+
+  useEffect(() => {
+    if (isEditMode) return;
+
+    const serializableImages = Array.isArray(formData.images)
+      ? formData.images
+          .filter((image) => image && typeof image === 'object' && image.url)
+          .map((image) => ({ url: image.url, name: image.name || '' }))
+      : [];
+
+    const draftPayload = {
+      currentStep,
+      formData: {
+        ...formData,
+        amenities: Array.isArray(formData.amenities) ? formData.amenities : [],
+        images: serializableImages,
+      },
+      updatedAt: Date.now(),
+    };
+
+    try {
+      localStorage.setItem(draftStorageKey, JSON.stringify(draftPayload));
+    } catch (_) {}
+  }, [currentStep, draftStorageKey, formData, isEditMode]);
 
   const updateFormData = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -156,11 +206,11 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
         city: formData.city,
         state: '',
         pincode: formData.pincode,
-        built_up_area: formData.builtUpArea,
+        built_up_area: formData.builtUpArea || formData.carpetArea,
         carpet_area: formData.carpetArea,
         total_floors: formData.totalFloors,
         floor_number: formData.floorNumber,
-        property_age: formData.propertyAge,
+        property_age: formData.propertyAge || '1-3',
         furnishing: formData.furnishing,
         facing: formData.facing,
         expected_price: formData.expectedPrice,
@@ -175,10 +225,12 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
 
       if (isEditMode) {
         await api.updateProperty(propertyId, payload);
+        localStorage.removeItem(draftStorageKey);
         showToast('Property updated successfully!');
         navigate(`/properties/${propertyId}`);
       } else {
         await api.createProperty(payload);
+        localStorage.removeItem(draftStorageKey);
         showToast('Your property has been posted successfully.');
         navigate('/properties');
       }

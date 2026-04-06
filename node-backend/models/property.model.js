@@ -227,17 +227,102 @@ const Property = {
     });
   },
 
-  // Delete a property (only if owned by ownerId). Returns affected row count.
-  async deleteById(propertyId, ownerId) {
+  // Delete a property (only if owned by ownerId) and log owner feedback. Returns affected row count.
+  async deleteById(propertyId, ownerId, rentedViaHimHomes) {
     return new Promise((resolve, reject) => {
-      db.query(
-        'DELETE FROM properties WHERE property_id = ? AND owner_id = ?',
-        [propertyId, ownerId],
-        (err, result) => {
-          if (err) return reject(err);
-          resolve(result.affectedRows);
-        }
-      );
+      db.getConnection((connErr, conn) => {
+        if (connErr) return reject(connErr);
+
+        conn.beginTransaction((txErr) => {
+          if (txErr) {
+            conn.release();
+            return reject(txErr);
+          }
+
+          conn.query(
+            `
+              SELECT property_id, property_for, property_type, city, locality
+              FROM properties
+              WHERE property_id = ? AND owner_id = ?
+              LIMIT 1
+            `,
+            [propertyId, ownerId],
+            (findErr, rows) => {
+              if (findErr) {
+                return conn.rollback(() => {
+                  conn.release();
+                  reject(findErr);
+                });
+              }
+
+              if (!rows || rows.length === 0) {
+                return conn.rollback(() => {
+                  conn.release();
+                  resolve(0);
+                });
+              }
+
+              const property = rows[0];
+
+              conn.query(
+                `
+                  INSERT INTO property_deletion_feedback (
+                    property_id,
+                    owner_id,
+                    rented_via_himhomes,
+                    property_for,
+                    property_type,
+                    city,
+                    locality
+                  )
+                  VALUES (?, ?, ?, ?, ?, ?, ?)
+                `,
+                [
+                  property.property_id,
+                  ownerId,
+                  rentedViaHimHomes ? 1 : 0,
+                  property.property_for,
+                  property.property_type,
+                  property.city,
+                  property.locality,
+                ],
+                (insertErr) => {
+                  if (insertErr) {
+                    return conn.rollback(() => {
+                      conn.release();
+                      reject(insertErr);
+                    });
+                  }
+
+                  conn.query(
+                    'DELETE FROM properties WHERE property_id = ? AND owner_id = ?',
+                    [propertyId, ownerId],
+                    (deleteErr, deleteResult) => {
+                      if (deleteErr) {
+                        return conn.rollback(() => {
+                          conn.release();
+                          reject(deleteErr);
+                        });
+                      }
+
+                      conn.commit((commitErr) => {
+                        if (commitErr) {
+                          return conn.rollback(() => {
+                            conn.release();
+                            reject(commitErr);
+                          });
+                        }
+                        conn.release();
+                        resolve(deleteResult.affectedRows);
+                      });
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
+      });
     });
   },
 
