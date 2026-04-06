@@ -13,6 +13,7 @@ function validateFirebaseConfig() {
     .filter(([, value]) => !value)
     .map(([key]) => key);
   if (missing.length) {
+    console.error('[PhoneOTP] Missing Firebase config keys', { missing });
     throw new Error(`Missing Firebase config: ${missing.join(', ')}`);
   }
 }
@@ -31,18 +32,22 @@ const recaptchaByContainerId = new Map();
  * Do not call `new RecaptchaVerifier` again for the same DOM node.
  */
 export function getOrCreateRecaptchaVerifier(containerId) {
+  console.info('[PhoneOTP] getOrCreateRecaptchaVerifier called', { containerId });
   const auth = getFirebaseAuth();
   const existing = recaptchaByContainerId.get(containerId);
   if (existing) {
+    console.info('[PhoneOTP] Reusing existing reCAPTCHA verifier', { containerId });
     return existing;
   }
 
   const containerEl =
     typeof document !== 'undefined' ? document.getElementById(containerId) : null;
   if (!containerEl) {
+    console.error('[PhoneOTP] reCAPTCHA container not found', { containerId });
     throw new Error('reCAPTCHA container is not in the document yet');
   }
 
+  console.info('[PhoneOTP] Creating new reCAPTCHA verifier', { containerId });
   const verifier = new RecaptchaVerifier(auth, containerId, {
     size: 'invisible',
   });
@@ -54,6 +59,7 @@ export function getOrCreateRecaptchaVerifier(containerId) {
  * Removes the widget and listeners; call on unmount or before replacing the container.
  */
 export function clearRecaptchaVerifier(containerId) {
+  console.info('[PhoneOTP] Clearing reCAPTCHA verifier', { containerId });
   const verifier = recaptchaByContainerId.get(containerId);
   if (verifier) {
     try {
@@ -74,6 +80,22 @@ export function clearRecaptchaVerifier(containerId) {
 }
 
 export async function sendPhoneOtp(phoneE164, recaptchaVerifier) {
+  console.info('[PhoneOTP] sendPhoneOtp called', {
+    phoneE164,
+    hasRecaptchaVerifier: !!recaptchaVerifier,
+  });
   const auth = getFirebaseAuth();
-  return signInWithPhoneNumber(auth, phoneE164, recaptchaVerifier);
+  try {
+    const result = await signInWithPhoneNumber(auth, phoneE164, recaptchaVerifier);
+    console.info('[PhoneOTP] signInWithPhoneNumber succeeded', { phoneE164 });
+    return result;
+  } catch (err) {
+    console.error('[PhoneOTP] signInWithPhoneNumber failed', {
+      phoneE164,
+      message: err?.message || 'Unknown error',
+      code: err?.code || null,
+      name: err?.name || null,
+    });
+    throw err;
+  }
 }

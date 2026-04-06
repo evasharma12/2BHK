@@ -29,6 +29,11 @@
   border-color: #16a34a;
 }
 
+.phone-otp-timer {
+  font-size: 0.82rem;
+  color: #475569;
+}
+
 .phone-otp-input {
   border: 1px solid #cbd5e1;
   border-radius: 8px;
