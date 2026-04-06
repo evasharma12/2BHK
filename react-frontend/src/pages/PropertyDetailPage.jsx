@@ -143,6 +143,17 @@ const PropertyDetailPage = () => {
     return amenity.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  const getPropertyAgeLabel = (age) => {
+    const labels = {
+      '0-1': 'Less than 1 year',
+      '1-3': '1-3 years',
+      '3-5': '3-5 years',
+      '5-10': '5-10 years',
+      '10+': '10+ years',
+    };
+    return labels[age] || '';
+  };
+
   const propertyMapEmbedUrl = useMemo(() => {
     if (!property) return '';
     const hasCoordinates =
@@ -365,21 +376,18 @@ const PropertyDetailPage = () => {
                   </div>
                 </div>
 
-                <div className="overview-item">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                  <div>
-                    <span className="overview-label">Property Age</span>
-                    <span className="overview-value">
-                      {property.propertyAge === '0-1' ? 'Less than 1 year' :
-                       property.propertyAge === '1-3' ? '1-3 years' :
-                       property.propertyAge === '3-5' ? '3-5 years' :
-                       property.propertyAge === '5-10' ? '5-10 years' : '10+ years'}
-                    </span>
+                {getPropertyAgeLabel(property.propertyAge) && (
+                  <div className="overview-item">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <div>
+                      <span className="overview-label">Property Age</span>
+                      <span className="overview-value">{getPropertyAgeLabel(property.propertyAge)}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {property.facing && (
                   <div className="overview-item">

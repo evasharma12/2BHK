@@ -380,22 +380,25 @@
 
 /* Amenities Section */
 .amenities-info {
-  grid-column: span 2;
+  grid-column: 1 / -1;
   margin-bottom: 1rem;
+  width: 100%;
 }
 
 .amenities-grid {
   box-sizing: border-box;
-  grid-column: span 2;
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 1rem;
   min-width: 0;
+  width: 100%;
 }
 
 .amenity-card {
   box-sizing: border-box;
   min-width: 0;
+  overflow: hidden;
   padding: 1rem;
   border: 2px solid #e2e8f0;
   border-radius: 10px;
@@ -425,6 +428,12 @@
 
 .amenity-icon {
   font-size: 2rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  flex-shrink: 0;
 }
 
 .amenity-label {
@@ -443,9 +452,9 @@
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #cbd5e1;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #cbd5e1;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -460,10 +469,12 @@
 
 .amenity-checkbox svg {
   color: #ffffff;
+  width: 11px;
+  height: 11px;
 }
 
 .amenities-summary {
-  grid-column: span 2;
+  grid-column: 1 / -1;
   text-align: center;
   margin-top: 1rem;
 }
@@ -476,14 +487,16 @@
 
 /* Image Upload */
 .images-info {
-  grid-column: span 2;
+  grid-column: 1 / -1;
   margin-bottom: 1rem;
+  width: 100%;
 }
 
 .image-upload-area {
   box-sizing: border-box;
-  grid-column: span 2;
+  grid-column: 1 / -1;
   min-width: 0;
+  width: 100%;
   border: 2px dashed #cbd5e1;
   border-radius: 12px;
   padding: 3rem 2rem;
@@ -957,7 +970,6 @@
   }
 
   .form-field--full,
-  .amenities-info,
   .amenities-grid,
   .images-info,
   .image-upload-area,
@@ -974,9 +986,19 @@
     grid-template-columns: 1fr;
   }
 
-  /* One amenity per row on mobile for consistent padding and no overflow */
+  /* Two amenities per row on mobile */
   .amenities-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .amenity-card {
+    min-height: 86px;
+    padding: 0.75rem;
+  }
+
+  .amenity-icon {
+    font-size: 1.4rem;
   }
 
   .preference-options {
@@ -990,6 +1012,17 @@
   .nav-btn--primary,
   .nav-btn--submit {
     margin-left: 0;
+  }
+
+  .amenities-info,
+  .amenities-grid,
+  .amenities-summary {
+    grid-column: 1 / -1;
+  }
+
+  .images-info,
+  .image-upload-area {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1019,9 +1052,23 @@
     margin: 0 0.25rem;
   }
 
-  /* Keep one amenity per column on small mobile too */
+  /* Keep two amenities per row on small mobile too */
   .amenities-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.625rem;
+  }
+
+  .amenity-card {
+    min-height: 80px;
+    padding: 0.625rem;
+  }
+
+  .amenity-icon {
+    font-size: 1.2rem;
+  }
+
+  .amenity-label {
+    font-size: 0.75rem;
   }
 
   .preview-grid {

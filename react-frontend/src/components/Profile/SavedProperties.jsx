@@ -113,9 +113,7 @@ const ListedPropertyMiniCard = ({ property, onDelete }) => {
   const handleDeleteClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this listing? This cannot be undone.')) {
-      onDelete(property.property_id);
-    }
+    onDelete(property);
   };
 
   const handleEditClick = (e) => {
@@ -163,6 +161,8 @@ const ListedPropertyMiniCard = ({ property, onDelete }) => {
 export const MyListings = ({ userId }) => {
   const [properties, setProperties] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletePromptProperty, setDeletePromptProperty] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchListings();
@@ -184,22 +184,38 @@ export const MyListings = ({ userId }) => {
     }
   };
 
-  const handleDelete = async (propertyId) => {
+  const handleDelete = (property) => {
+    setDeletePromptProperty(property);
+  };
+
+  const handleDeleteChoice = async (rentedViaHimHomes) => {
+    if (!deletePromptProperty || isDeleting) return;
     try {
+      setIsDeleting(true);
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/properties/${propertyId}`, {
+      const res = await fetch(`${API_URL}/api/properties/${deletePromptProperty.property_id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ rented_via_himhomes: rentedViaHimHomes }),
       });
       const data = await res.json();
       if (data.success) {
-        setProperties((prev) => prev.filter((p) => p.property_id !== propertyId));
+        setProperties((prev) =>
+          prev.filter((p) => p.property_id !== deletePromptProperty.property_id)
+        );
+        setDeletePromptProperty(null);
+        window.alert('Property remove successfully');
       } else {
         alert(data.message || 'Failed to delete property');
       }
     } catch (err) {
       console.error('Failed to delete property:', err);
       alert('Failed to delete property. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -234,6 +250,16 @@ export const MyListings = ({ userId }) => {
           />
         ))}
       </div>
+      {deletePromptProperty && (
+        <DeleteFeedbackModal
+          isLoading={isDeleting}
+          onYes={() => handleDeleteChoice(true)}
+          onNo={() => handleDeleteChoice(false)}
+          onCancel={() => {
+            if (!isDeleting) setDeletePromptProperty(null);
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -499,6 +525,42 @@ const EmptyState = ({ icon, title, subtitle, cta }) => (
     {cta && (
       <a href={cta.href} className="empty-state__btn">{cta.label}</a>
     )}
+  </div>
+);
+
+const DeleteFeedbackModal = ({ isLoading, onYes, onNo, onCancel }) => (
+  <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-feedback-title">
+    <div className="modal-card">
+      <h3 id="delete-feedback-title" className="modal-card__title">
+        Were you able to rent out your property via HimHomes?
+      </h3>
+      <div className="modal-card__actions">
+        <button
+          type="button"
+          className="modal-card__btn modal-card__btn--primary"
+          onClick={onYes}
+          disabled={isLoading}
+        >
+          Yes
+        </button>
+        <button
+          type="button"
+          className="modal-card__btn modal-card__btn--secondary"
+          onClick={onNo}
+          disabled={isLoading}
+        >
+          No
+        </button>
+        <button
+          type="button"
+          className="modal-card__btn modal-card__btn--ghost"
+          onClick={onCancel}
+          disabled={isLoading}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   </div>
 );
 

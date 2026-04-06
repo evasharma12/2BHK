@@ -5,20 +5,6 @@ const PropertyDetails = ({ formData, updateFormData }) => {
     <div className="form-section">
       {/* Area Details */}
       <div className="form-field">
-        <label htmlFor="builtUpArea" className="field-label">Built-up Area (sq ft)*</label>
-        <input
-          type="number"
-          id="builtUpArea"
-          className="field-input"
-          placeholder="e.g., 1200"
-          value={formData.builtUpArea}
-          onChange={(e) => updateFormData('builtUpArea', e.target.value)}
-          min="100"
-          required
-        />
-      </div>
-
-      <div className="form-field">
         <label htmlFor="carpetArea" className="field-label">Carpet Area (sq ft)*</label>
         <input
           type="number"
@@ -65,15 +51,14 @@ const PropertyDetails = ({ formData, updateFormData }) => {
 
       {/* Property Age */}
       <div className="form-field">
-        <label htmlFor="propertyAge" className="field-label">Property Age*</label>
+        <label htmlFor="propertyAge" className="field-label">Property Age (Optional)</label>
         <select
           id="propertyAge"
           className="field-input field-select"
           value={formData.propertyAge}
           onChange={(e) => updateFormData('propertyAge', e.target.value)}
-          required
         >
-          <option value="">Select Age</option>
+          <option value="">Select Age (Optional)</option>
           <option value="0-1">Less than 1 year</option>
           <option value="1-3">1-3 years</option>
           <option value="3-5">3-5 years</option>
@@ -101,15 +86,14 @@ const PropertyDetails = ({ formData, updateFormData }) => {
 
       {/* Facing Direction */}
       <div className="form-field">
-        <label htmlFor="facing" className="field-label">Property Facing*</label>
+        <label htmlFor="facing" className="field-label">Property Facing (Optional)</label>
         <select
           id="facing"
           className="field-input field-select"
           value={formData.facing}
           onChange={(e) => updateFormData('facing', e.target.value)}
-          required
         >
-          <option value="">Select Direction</option>
+          <option value="">Select Direction (Optional)</option>
           <option value="north">North</option>
           <option value="south">South</option>
           <option value="east">East</option>

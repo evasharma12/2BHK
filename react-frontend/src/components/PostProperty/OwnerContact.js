@@ -43,18 +43,6 @@ const OwnerContact = ({ formData, updateFormData }) => {
         </label>
       </div>
 
-      {/* Privacy Notice */}
-      <div className="privacy-notice">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="16" x2="12" y2="12"/>
-          <line x1="12" y1="8" x2="12.01" y2="8"/>
-        </svg>
-        <p>
-          Your contact details will only be shared with verified users who show 
-          interest in your property. We take your privacy seriously.
-        </p>
-      </div>
     </div>
   );
 };
