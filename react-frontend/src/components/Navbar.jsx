@@ -88,33 +88,11 @@ const Navbar = () => {
       <div className="navbar__container">
         {/* Logo Section */}
         <Link to="/" className="navbar__logo">
-          <div className="navbar__logo-icon">
-            <svg 
-              width="32" 
-              height="32" 
-              viewBox="0 0 28 28" 
-              fill="none" 
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle cx="14" cy="14" r="14" fill="currentColor"/>
-              <path 
-                d="M8 14L12 10L16 14L20 10" 
-                stroke="white" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              />
-              <path 
-                d="M12 18V10M16 18V14" 
-                stroke="white" 
-                strokeWidth="2" 
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-          <span className="navbar__logo-text">
-            Him<span className="navbar__logo-text--bold">Homes</span>
-          </span>
+          <img
+            className="navbar__logo-image"
+            src="https://res.cloudinary.com/dldoqjanc/image/upload/v1775497884/Screenshot_2026-04-06_at_11.21.08_PM_ka6fhm.png"
+            alt="HimHomes"
+          />
         </Link>
 
         <div className="navbar__actions">
