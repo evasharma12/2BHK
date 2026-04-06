@@ -7,7 +7,7 @@ const TermsPage = () => {
     <div className="terms-page">
       <div className="terms-container">
         <Link to="/" className="terms-back">
-          ← Back to PropertyBazaar
+          ← Back to HimHomes
         </Link>
 
         <header className="terms-header">
@@ -17,13 +17,13 @@ const TermsPage = () => {
 
         <div className="terms-content">
           <p className="terms-intro">
-            Welcome to PropertyBazaar. By using this platform to browse, list, or inquire about properties, you agree to the following terms. Please read them carefully.
+            Welcome to HimHomes. By using this platform to browse, list, or inquire about properties, you agree to the following terms. Please read them carefully.
           </p>
 
           <section className="terms-section-block">
             <h2>1. Nature of the Platform</h2>
             <p>
-              PropertyBazaar is a listing and discovery platform that connects property owners with potential buyers and tenants. The platform does not own, sell, or rent properties. We do not act as agents, brokers, or intermediaries in any transaction between users.
+              HimHomes is a listing and discovery platform that connects property owners with potential buyers and tenants. The platform does not own, sell, or rent properties. We do not act as agents, brokers, or intermediaries in any transaction between users.
             </p>
           </section>
 
@@ -58,7 +58,7 @@ const TermsPage = () => {
           <section className="terms-section-block">
             <h2>6. Limitation of Liability</h2>
             <p>
-              To the fullest extent permitted by law, PropertyBazaar and its operators shall not be liable for any direct, indirect, incidental, consequential, or punitive damages arising from: (a) your use or inability to use the platform; (b) any listing, communication, or transaction between users; (c) any inaccuracy, omission, or fraud in user-generated content; (d) any dispute, loss, or harm resulting from interactions with other users. Your use of the platform is at your sole risk.
+              To the fullest extent permitted by law, HimHomes and its operators shall not be liable for any direct, indirect, incidental, consequential, or punitive damages arising from: (a) your use or inability to use the platform; (b) any listing, communication, or transaction between users; (c) any inaccuracy, omission, or fraud in user-generated content; (d) any dispute, loss, or harm resulting from interactions with other users. Your use of the platform is at your sole risk.
             </p>
           </section>
 

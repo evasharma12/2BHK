@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api';
+import { useToast } from '../../context/ToastContext';
 import PropertyBasicInfo from './PropertyBasicInfo';
 import PropertyDetails from './PropertyDetails';
 import PropertyAmenities from './PropertyAmenities';
@@ -40,6 +41,7 @@ const defaultFormData = {
 
 const PostProperty = ({ propertyId = null, initialFormData = null }) => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const isEditMode = Boolean(propertyId);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -173,11 +175,11 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
 
       if (isEditMode) {
         await api.updateProperty(propertyId, payload);
-        alert('Property updated successfully!');
+        showToast('Property updated successfully!');
         navigate(`/properties/${propertyId}`);
       } else {
         await api.createProperty(payload);
-        alert('Property posted successfully!');
+        showToast('Your property has been posted successfully.');
         navigate('/properties');
       }
     } catch (err) {
