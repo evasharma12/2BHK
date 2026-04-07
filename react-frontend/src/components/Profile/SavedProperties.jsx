@@ -207,7 +207,7 @@ export const MyListings = ({ userId }) => {
           prev.filter((p) => p.property_id !== deletePromptProperty.property_id)
         );
         setDeletePromptProperty(null);
-        window.alert('Property remove successfully');
+        window.alert('Property removed successfully');
       } else {
         alert(data.message || 'Failed to delete property');
       }
