@@ -17,6 +17,20 @@ function toOtpDebugError(err) {
   };
 }
 
+function getFriendlyOtpErrorMessage(err) {
+  const code = String(err?.code || '');
+  if (code.includes('too-many-requests') || code.includes('quota-exceeded')) {
+    return 'OTP requests are temporarily limited. Please wait and try again later.';
+  }
+  if (code.includes('invalid-phone-number')) {
+    return 'Please enter a valid phone number in the correct format.';
+  }
+  if (code.includes('captcha-check-failed')) {
+    return 'Security check failed. Please try sending OTP again.';
+  }
+  return err?.message || 'Failed to send OTP';
+}
+
 const PhoneOtpVerifier = ({ userId, phoneNumber, onVerifiedChange }) => {
   const [status, setStatus] = useState('idle'); // idle|checking|sending|sent|verifying|verified|error
   const [message, setMessage] = useState('');
@@ -119,8 +133,9 @@ const PhoneOtpVerifier = ({ userId, phoneNumber, onVerifiedChange }) => {
       setMessage(`OTP sent to ${phoneE164}`);
     } catch (err) {
       console.error('[PhoneOTP] Send OTP failed', toOtpDebugError(err));
+      clearRecaptchaVerifier(recaptchaContainerId);
       setStatus('error');
-      setMessage(err.message || 'Failed to send OTP');
+      setMessage(getFriendlyOtpErrorMessage(err));
     }
   };
 

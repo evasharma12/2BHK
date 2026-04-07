@@ -21,7 +21,12 @@ function validateFirebaseConfig() {
 function getFirebaseAuth() {
   validateFirebaseConfig();
   const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-  return getAuth(app);
+  const auth = getAuth(app);
+  // Match Firebase docs recommendation to localize auth flows/SMS where possible.
+  if (typeof auth.useDeviceLanguage === 'function') {
+    auth.useDeviceLanguage();
+  }
+  return auth;
 }
 
 /** One RecaptchaVerifier per container; reusing it avoids "already rendered in this element". */
@@ -50,6 +55,13 @@ export function getOrCreateRecaptchaVerifier(containerId) {
   console.info('[PhoneOTP] Creating new reCAPTCHA verifier', { containerId });
   const verifier = new RecaptchaVerifier(auth, containerId, {
     size: 'invisible',
+    callback: () => {
+      console.info('[PhoneOTP] reCAPTCHA solved', { containerId });
+    },
+    'expired-callback': () => {
+      console.warn('[PhoneOTP] reCAPTCHA expired; clearing verifier', { containerId });
+      clearRecaptchaVerifier(containerId);
+    },
   });
   recaptchaByContainerId.set(containerId, verifier);
   return verifier;
@@ -86,10 +98,32 @@ export async function sendPhoneOtp(phoneE164, recaptchaVerifier) {
   });
   const auth = getFirebaseAuth();
   try {
+    if (recaptchaVerifier && typeof recaptchaVerifier.render === 'function') {
+      await recaptchaVerifier.render();
+      console.info('[PhoneOTP] reCAPTCHA rendered before signInWithPhoneNumber');
+    }
     const result = await signInWithPhoneNumber(auth, phoneE164, recaptchaVerifier);
     console.info('[PhoneOTP] signInWithPhoneNumber succeeded', { phoneE164 });
     return result;
   } catch (err) {
+    try {
+      if (recaptchaVerifier && typeof recaptchaVerifier.render === 'function') {
+        const widgetId = await recaptchaVerifier.render();
+        if (typeof window !== 'undefined' && window.grecaptcha?.reset) {
+          window.grecaptcha.reset(widgetId);
+          console.info('[PhoneOTP] reCAPTCHA reset after send failure', { widgetId });
+        } else {
+          console.warn('[PhoneOTP] grecaptcha.reset unavailable; clearing verifier for fresh retry');
+          recaptchaByContainerId.forEach((value, key) => {
+            if (value === recaptchaVerifier) clearRecaptchaVerifier(key);
+          });
+        }
+      }
+    } catch (resetErr) {
+      console.warn('[PhoneOTP] Failed to reset reCAPTCHA after send failure', {
+        message: resetErr?.message || 'Unknown error',
+      });
+    }
     console.error('[PhoneOTP] signInWithPhoneNumber failed', {
       phoneE164,
       message: err?.message || 'Unknown error',
