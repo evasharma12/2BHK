@@ -6,6 +6,13 @@ import PhoneOtpVerifier from '../components/common/PhoneOtpVerifier';
 import { api } from '../utils/api';
 import './PostPropertyPage.css';
 
+function devPrefillPhone10() {
+  if (process.env.NODE_ENV !== 'development') return '';
+  const raw = process.env.REACT_APP_DEV_PREFILL_PHONE;
+  if (!raw) return '';
+  return String(raw).replace(/\D/g, '').slice(0, 10);
+}
+
 const PostPropertyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,11 +33,11 @@ const PostPropertyPage = () => {
         setUser(freshUser);
         localStorage.setItem('user', JSON.stringify(freshUser));
         const primaryPhone = freshUser?.phone_numbers?.split(',')?.[0]?.trim() || '';
-        setPhoneInput(primaryPhone);
+        setPhoneInput(primaryPhone || devPrefillPhone10());
       } catch (_) {
         setUser(localUser);
         const primaryPhone = localUser?.phone_numbers?.split(',')?.[0]?.trim() || '';
-        setPhoneInput(primaryPhone);
+        setPhoneInput(primaryPhone || devPrefillPhone10());
       } finally {
         setIsChecking(false);
       }

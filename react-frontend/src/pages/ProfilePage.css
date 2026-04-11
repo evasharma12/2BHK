@@ -19,6 +19,8 @@
 .profile-page__body {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .profile-page__content {

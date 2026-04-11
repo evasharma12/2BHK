@@ -5,6 +5,7 @@
   background: #f8fafc;
   /* Fixed navbar (.navbar height 70px) + breathing room below it */
   padding: calc(70px + 1.5rem) 0 3rem;
+  font-size: 0.75rem;
 }
 
 .properties-container {
@@ -30,7 +31,7 @@
 
 .page-title {
   font-family: 'Fraunces', 'Outfit', Georgia, serif;
-  font-size: 2rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: #0f172a;
   margin: 0 0 0.5rem 0;
@@ -39,7 +40,7 @@
 }
 
 .page-subtitle {
-  font-size: 1.125rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: #475569;
   margin: 0;
@@ -64,7 +65,7 @@
 }
 
 .sort-label {
-  font-size: 0.875rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: #64748b;
   margin: 0;
@@ -75,7 +76,7 @@
 .sort-select {
   min-width: 180px;
   padding: 0.625rem 2.5rem 0.625rem 1rem;
-  font-size: 0.9375rem;
+  font-size: 0.7rem;
   font-weight: 500;
   color: #1e293b;
   background: #fff;
@@ -107,7 +108,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  font-size: 0.9375rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: #334155;
   background: #fff;
@@ -134,15 +135,15 @@
 
 .filters-trigger svg {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
 }
 
 .filters-trigger-badge {
   min-width: 1.25rem;
   height: 1.25rem;
   padding: 0 0.35rem;
-  font-size: 0.75rem;
+  font-size: 0.625rem;
   font-weight: 700;
   color: #fff;
   background: #2563eb;
@@ -267,7 +268,7 @@
   color: #f8fafc;
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.625rem;
   line-height: 1.35;
 }
 
@@ -287,13 +288,13 @@
 .properties-map-preview h4 {
   margin: 0 0 0.2rem;
   color: #0f172a;
-  font-size: 0.95rem;
+  font-size: 0.7rem;
 }
 
 .properties-map-preview p {
   margin: 0;
   color: #475569;
-  font-size: 0.82rem;
+  font-size: 0.6875rem;
 }
 
 .properties-map-preview-price {
@@ -308,7 +309,7 @@
   color: #1d4ed8;
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.82rem;
+  font-size: 0.6875rem;
 }
 
 .mobile-results-toggle {
@@ -329,7 +330,7 @@
   justify-content: center;
   min-height: 320px;
   color: #64748b;
-  font-size: 1rem;
+  font-size: 0.75rem;
 }
 
 .loading-spinner {
@@ -360,7 +361,7 @@
 }
 
 .no-properties h3 {
-  font-size: 1.25rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: #334155;
   margin: 0 0 0.5rem 0;
@@ -369,11 +370,12 @@
 .no-properties p {
   color: #64748b;
   margin: 0 0 1.5rem 0;
+  font-size: 0.75rem;
 }
 
 .reset-btn {
   padding: 0.625rem 1.25rem;
-  font-size: 0.9375rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: #2563eb;
   background: rgba(37, 99, 235, 0.1);
@@ -423,7 +425,7 @@
     background: transparent;
     color: #475569;
     font-weight: 600;
-    font-size: 0.9375rem;
+    font-size: 0.7rem;
     border-radius: 8px;
     padding: 0.6rem 0.75rem;
     cursor: pointer;
@@ -453,23 +455,146 @@
   }
 
   .header-actions {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    align-items: center;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .filters-dropdown-wrap {
+    flex-shrink: 0;
   }
 
   .sort-section {
-    width: 100%;
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    gap: 0.5rem;
+  }
+
+  /* Keep label for accessibility; hide visually so Filters + select fit one row */
+  .sort-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .sort-select {
     flex: 1;
+    width: 100%;
     min-width: 0;
+    min-height: 2.75rem;
+    font-size: 0.7rem;
+  }
+
+  .filters-trigger {
+    min-height: 2.75rem;
   }
 
   .page-title {
-    font-size: 1.625rem;
+    font-size: 1.15rem;
   }
 
   .page-subtitle {
-    font-size: 1rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* Cards + filters (listing page only; does not affect profile saved list) */
+.properties-page .property-card__title {
+  font-size: 0.8rem;
+}
+
+.properties-page .property-card__price {
+  font-size: 1rem;
+}
+
+.properties-page .property-card__location {
+  font-size: calc(0.7rem * 0.85);
+}
+
+.properties-page .spec-item {
+  font-size: 0.6875rem;
+}
+
+.properties-page .amenity-tag {
+  font-size: 0.625rem;
+}
+
+.properties-page .property-card__badge {
+  font-size: 0.625rem;
+}
+
+.properties-page .property-card__image-count {
+  font-size: 0.625rem;
+}
+
+.properties-page .price-period {
+  font-size: 0.6875rem;
+}
+
+.properties-page .filters-title {
+  font-size: 0.8rem;
+}
+
+.properties-page .clear-filters-btn {
+  font-size: 0.6875rem;
+}
+
+.properties-page .filters-count {
+  font-size: 0.7rem;
+}
+
+.properties-page .filter-label {
+  font-size: 0.6875rem;
+}
+
+.properties-page .filter-btn {
+  font-size: 0.6875rem;
+}
+
+.properties-page .filter-select,
+.properties-page .filter-input {
+  font-size: 0.7rem;
+}
+
+.properties-page .filter-location-status {
+  font-size: 0.625rem;
+}
+
+.properties-page .filter-location-suggestion-item {
+  font-size: 0.7rem;
+}
+
+.properties-page .filter-location-suggestion-item small {
+  font-size: 0.625rem;
+}
+
+.properties-page .price-separator {
+  font-size: 0.6875rem;
+}
+
+.properties-page .filters-apply-btn {
+  font-size: 0.7rem;
+}
+
+@media (max-width: 768px) {
+  .properties-page .property-card__title {
+    font-size: 0.75rem;
+  }
+
+  .properties-page .property-card__price {
+    font-size: 0.9rem;
+  }
+
+  .properties-page .filters-title {
+    font-size: 0.75rem;
   }
 }

@@ -29,11 +29,11 @@ async function sendSupportQueryNotification({ queryId, queryText, email, phone, 
   await transporter.sendMail({
     from: process.env.SUPPORT_NOTIFICATION_FROM || process.env.SMTP_USER,
     to,
-    subject: 'Customer Care Query from 2BHK application',
+    subject: 'Customer Care Query from Himhomes application',
     text: [
       'Hello Team,',
       '',
-      'A new customer care query has been submitted from the 2BHK application.',
+      'A new customer care query has been submitted from the Himhomes application.',
       '',
       'Submission Details:',
       `- Query ID: ${queryId}`,
@@ -48,7 +48,7 @@ async function sendSupportQueryNotification({ queryId, queryText, email, phone, 
       'Please follow up with the user as soon as possible.',
       '',
       'Regards,',
-      '2BHK System',
+      'Himhomes System',
     ].join('\n'),
   });
 
@@ -65,11 +65,11 @@ async function sendFeedbackNotification({ feedbackId, feedbackText, email, phone
   await transporter.sendMail({
     from: process.env.SUPPORT_NOTIFICATION_FROM || process.env.SMTP_USER,
     to,
-    subject: 'Product Feedback from 2BHK application',
+    subject: 'Product Feedback from Himhomes application',
     text: [
       'Hello Team,',
       '',
-      'A new feedback submission has been received from the 2BHK application.',
+      'A new feedback submission has been received from the Himhomes application.',
       '',
       'Submission Details:',
       `- Feedback ID: ${feedbackId}`,
@@ -84,7 +84,7 @@ async function sendFeedbackNotification({ feedbackId, feedbackText, email, phone
       'Please review and prioritize if action is required.',
       '',
       'Regards,',
-      '2BHK System',
+      'Himhomes System',
     ].join('\n'),
   });
 
@@ -124,15 +124,15 @@ async function sendChatUnreadDigest({ toEmail, fullName, unreadCount, appUrl }) 
   await transporter.sendMail({
     from: process.env.SUPPORT_NOTIFICATION_FROM || process.env.SMTP_USER,
     to: normalized,
-    subject: 'You have unread messages on 2BHK',
+    subject: 'You have unread messages on Himhomes',
     text: [
       `Hi ${fullName || 'there'},`,
       '',
-      `You have ${n} unread ${label} on 2BHK.`,
+      `You have ${n} unread ${label} on Himhomes.`,
       '',
       `Open your chats: ${chatsUrl}`,
       '',
-      '— 2BHK',
+      '— Himhomes',
     ].join('\n'),
   });
 

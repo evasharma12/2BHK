@@ -4,6 +4,7 @@ import { loginPathWithRedirect } from '../utils/authRedirect';
 import ImageGallery from '../components/ImageGallery';
 import ContactOwner from '../components/ContactOwner';
 import { api } from '../utils/api';
+import { useToast } from '../context/ToastContext';
 import './PropertyDetailPage.css';
 
 function normalizeIndiaCoordinates(latValue, lngValue) {
@@ -31,6 +32,7 @@ const PropertyDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
   const [property, setProperty] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -195,6 +197,50 @@ const PropertyDetailPage = () => {
     }
   };
 
+  const handleShareProperty = async () => {
+    if (!property) return;
+    const url = `${window.location.origin}${location.pathname}`;
+    const title = `${property.bhk} BHK ${getPropertyTypeLabel(property.propertyType)} | HimHomes`;
+    const priceLine = formatPrice(property.expectedPrice, property.propertyFor);
+    const rentSuffix = property.propertyFor === 'rent' ? ' / month' : '';
+    const place = [property.locality, property.city].filter(Boolean).join(', ');
+    const text = place ? `${priceLine}${rentSuffix} · ${place}` : `${priceLine}${rentSuffix}`;
+
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title, text, url });
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast('Link copied — paste anywhere to share');
+        return;
+      } catch (_) {
+        /* fall through */
+      }
+    }
+
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('Link copied — paste anywhere to share');
+    } catch (_) {
+      window.prompt('Copy this link to share:', url);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="property-detail-page">
@@ -232,20 +278,21 @@ const PropertyDetailPage = () => {
   return (
     <div className="property-detail-page">
       <div className="property-detail-container">
-        {/* Back Button */}
-        <button className="back-link" onClick={() => navigate(-1)}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-          Back
-        </button>
+        <div className="property-detail-top">
+          <button type="button" className="back-link" onClick={() => navigate(-1)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back
+          </button>
+          <div className="property-badge">
+            {property.propertyFor === 'rent' ? 'For Rent' : 'For Sale'}
+          </div>
+        </div>
 
         {/* Property Header */}
         <div className="property-header">
           <div className="header-main">
-            <div className="property-badge">
-              {property.propertyFor === 'rent' ? 'For Rent' : 'For Sale'}
-            </div>
             <h1 className="property-title">
               {property.bhk} BHK {getPropertyTypeLabel(property.propertyType)}
             </h1>
@@ -284,23 +331,41 @@ const PropertyDetailPage = () => {
                 Edit
               </button>
             )}
-            <div
-              className={`save-property-btn ${isSaved ? 'saved' : ''}`}
-              title={isSaved ? 'Saved' : 'Save'}
-              onClick={handleSaveClick}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSaveClick(); } }}
-              aria-label={isSaved ? 'Remove from saved' : 'Save property'}
-            >
-              {saveLoading ? (
-                <span className="save-property-spinner" />
-              ) : (
-                <svg className="save-property-icon" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            <div className="header-price__icon-actions">
+              <button
+                type="button"
+                className="share-property-btn"
+                onClick={handleShareProperty}
+                aria-label="Share this property"
+                title="Share"
+              >
+                <svg className="share-property-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
                 </svg>
-              )}
-              <span className="save-property-tooltip">{isSaved ? 'Saved' : 'Save'}</span>
+                <span className="share-property-tooltip">Share</span>
+              </button>
+              <div
+                className={`save-property-btn ${isSaved ? 'saved' : ''}`}
+                title={isSaved ? 'Saved' : 'Save'}
+                onClick={handleSaveClick}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSaveClick(); } }}
+                aria-label={isSaved ? 'Remove from saved' : 'Save property'}
+              >
+                {saveLoading ? (
+                  <span className="save-property-spinner" />
+                ) : (
+                  <svg className="save-property-icon" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                )}
+                <span className="save-property-tooltip">{isSaved ? 'Saved' : 'Save'}</span>
+              </div>
             </div>
           </div>
         </div>

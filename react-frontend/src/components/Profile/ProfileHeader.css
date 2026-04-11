@@ -137,10 +137,12 @@
   
   .profile-header__actions {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
     gap: 0.625rem;
     flex-shrink: 0;
-    align-self: flex-start;
+    align-self: center;
   }
 
   /* Edit Button */
@@ -205,12 +207,17 @@
   
     .profile-header__actions {
       width: 100%;
+      max-width: 100%;
     }
 
     .profile-header__edit-btn,
     .profile-header__logout-btn {
-      width: 100%;
+      flex: 1 1 0;
+      min-width: 0;
+      width: auto;
       justify-content: center;
+      padding-left: 0.65rem;
+      padding-right: 0.65rem;
     }
   
     .profile-header__avatar {

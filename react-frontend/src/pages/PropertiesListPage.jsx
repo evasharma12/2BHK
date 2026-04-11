@@ -390,8 +390,14 @@ const PropertiesListPage = () => {
                 <div className="filters-dropdown-panel">
                   <PropertyFilters
                     filters={filters}
-                    onFilterChange={(f) => { handleFilterChange(f); }}
-                    onClearFilters={() => { handleClearFilters(); setFiltersOpen(false); }}
+                    onFilterChange={(f) => {
+                      handleFilterChange(f);
+                      setFiltersOpen(false);
+                    }}
+                    onClearFilters={() => {
+                      handleClearFilters();
+                      setFiltersOpen(false);
+                    }}
                     totalCount={properties.length}
                   />
                 </div>
