@@ -1,5 +1,6 @@
 // dbConnection.js
 const mysql = require('mysql2');
+const { getMysql2Ssl } = require('../config/mysqlSsl');
 
 // Support both DB_* and Railway's MYSQL* env var names (Railway MySQL plugin exposes MYSQLHOST, etc.)
 const host = process.env.DB_HOST || process.env.MYSQLHOST || 'localhost';
@@ -8,6 +9,8 @@ const password = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '';
 const database = process.env.DB_NAME || process.env.MYSQLDATABASE || '2bhk_db';
 const port = process.env.DB_PORT || process.env.MYSQLPORT;
 const portNum = port ? parseInt(port, 10) : 3306;
+
+const ssl = getMysql2Ssl();
 
 if (process.env.NODE_ENV === 'production' && host === 'localhost') {
   console.error(
@@ -28,6 +31,7 @@ const pool = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
+  ...(ssl && { ssl }),
 });
 
 // Helper used by server.js to verify DB connectivity on startup

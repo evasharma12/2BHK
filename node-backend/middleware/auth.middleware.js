@@ -17,10 +17,16 @@ module.exports = function authMiddleware(req, res, next) {
     req.user = decoded;
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    if (error.name === 'TokenExpiredError') {
+      console.warn('Auth: JWT expired', { path: req.path, expiredAt: error.expiredAt });
+    } else {
+      console.error('Auth middleware error:', error);
+    }
+    const expired = error.name === 'TokenExpiredError';
     return res.status(401).json({
       success: false,
-      message: 'Invalid or expired token',
+      message: expired ? 'Token expired' : 'Invalid or expired token',
+      code: expired ? 'TOKEN_EXPIRED' : 'TOKEN_INVALID',
     });
   }
 };

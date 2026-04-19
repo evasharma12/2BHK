@@ -1,7 +1,10 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mysql = require('mysql2/promise');
+const { getMysql2Ssl } = require('../config/mysqlSsl');
 
 // Align with dbConnection.js (DB_* and Railway MYSQL* names)
+const dbSsl = getMysql2Ssl();
+
 const dbConfig = {
   host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
   user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
@@ -11,6 +14,7 @@ const dbConfig = {
     const p = process.env.DB_PORT || process.env.MYSQLPORT;
     return p ? parseInt(p, 10) : 3306;
   })(),
+  ...(dbSsl && { ssl: dbSsl }),
 };
 
 const MYSQL_RESERVED_DATABASES = new Set([
