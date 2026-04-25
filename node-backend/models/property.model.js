@@ -227,7 +227,7 @@ const Property = {
     });
   },
 
-  // Delete a property (only if owned by ownerId) and log owner feedback. Returns affected row count.
+  // Soft-delete a property (only if owned by ownerId) and log owner feedback. Returns affected row count.
   async deleteById(propertyId, ownerId, rentedViaHimHomes) {
     return new Promise((resolve, reject) => {
       db.getConnection((connErr, conn) => {
@@ -295,13 +295,21 @@ const Property = {
                   }
 
                   conn.query(
-                    'DELETE FROM properties WHERE property_id = ? AND owner_id = ?',
-                    [propertyId, ownerId],
-                    (deleteErr, deleteResult) => {
-                      if (deleteErr) {
+                    `
+                      UPDATE properties
+                      SET
+                        is_rented_out = 1,
+                        rented_out_by = ?,
+                        status = 'inactive',
+                        updated_at = CURRENT_TIMESTAMP
+                      WHERE property_id = ? AND owner_id = ?
+                    `,
+                    [rentedViaHimHomes ? 'himhomes' : 'other', propertyId, ownerId],
+                    (updateErr, updateResult) => {
+                      if (updateErr) {
                         return conn.rollback(() => {
                           conn.release();
-                          reject(deleteErr);
+                          reject(updateErr);
                         });
                       }
 
@@ -313,7 +321,7 @@ const Property = {
                           });
                         }
                         conn.release();
-                        resolve(deleteResult.affectedRows);
+                        resolve(updateResult.affectedRows);
                       });
                     }
                   );
