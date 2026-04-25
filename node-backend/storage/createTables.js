@@ -120,6 +120,23 @@ async function createDatabaseSchema() {
     console.log('✓ Created user_phones table');
 
     // ============================================
+    // 2b. ADMIN_USERS TABLE
+    // ============================================
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        admin_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_admin_user (user_id),
+        INDEX idx_admin_users_is_active (is_active),
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      )
+    `);
+    console.log('✓ Created admin_users table');
+
+    // ============================================
     // DESTRUCTIVE RESET FOR PROPERTY STACK (cutover)
     // ============================================
     // Drop dependent tables first so properties can be recreated safely.
@@ -179,6 +196,9 @@ async function createDatabaseSchema() {
         -- Status
         status ENUM('active', 'inactive', 'rented', 'sold', 'pending') DEFAULT 'active',
         is_verified BOOLEAN DEFAULT FALSE,
+        is_rented_out BOOLEAN NOT NULL DEFAULT FALSE,
+        rented_out_by ENUM('himhomes', 'other') NULL,
+        secondary_phone_number VARCHAR(20) NULL,
         
         -- Metadata
         views_count INT DEFAULT 0,
@@ -195,6 +215,7 @@ async function createDatabaseSchema() {
         INDEX idx_status (status),
         INDEX idx_created_at (created_at),
         INDEX idx_furnishing (furnishing),
+        INDEX idx_status_rental_created_at (status, is_rented_out, rented_out_by, created_at),
         SPATIAL INDEX idx_location (location),
         
         -- COMPOSITE INDEXES for common filter combinations
@@ -203,6 +224,80 @@ async function createDatabaseSchema() {
       )
     `);
     console.log('✓ Created properties table with optimized indexes');
+
+    // Backward-compatible migration for existing DBs where rental lifecycle columns/index may not exist
+    const [isRentedOutColumnRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'is_rented_out'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (isRentedOutColumnRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE properties
+        ADD COLUMN is_rented_out BOOLEAN NOT NULL DEFAULT FALSE
+      `);
+    }
+
+    const [rentedOutByColumnRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'rented_out_by'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (rentedOutByColumnRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE properties
+        ADD COLUMN rented_out_by ENUM('himhomes', 'other') NULL
+      `);
+    }
+
+    const [secondaryPhoneColumnRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'secondary_phone_number'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (secondaryPhoneColumnRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE properties
+        ADD COLUMN secondary_phone_number VARCHAR(20) NULL
+      `);
+    }
+
+    const [statusRentalIndexRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND INDEX_NAME = 'idx_status_rental_created_at'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (statusRentalIndexRows.length === 0) {
+      await connection.execute(`
+        CREATE INDEX idx_status_rental_created_at
+        ON properties (status, is_rented_out, rented_out_by, created_at)
+      `);
+    }
+    console.log('✓ Ensured properties rental lifecycle columns and index exist');
 
     // ============================================
     // 4. PROPERTY_IMAGES TABLE
