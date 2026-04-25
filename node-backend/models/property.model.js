@@ -115,8 +115,13 @@ const Property = {
   // Get active properties with optional filters (query params from frontend)
   async findAllWithFilters(filters) {
     return new Promise((resolve, reject) => {
-      const conditions = ['p.status = ?'];
-      const values = ['active'];
+      const conditions = [
+        `(
+          (p.status = 'active' AND COALESCE(p.is_rented_out, 0) = 0)
+          OR (COALESCE(p.is_rented_out, 0) = 1 AND p.rented_out_by = 'himhomes')
+        )`
+      ];
+      const values = [];
       let distanceExpr = 'NULL';
       let usingRadiusSearch = false;
 
@@ -189,6 +194,7 @@ const Property = {
         filters.sort && orderBy[filters.sort]
           ? orderBy[filters.sort]
           : (usingRadiusSearch ? 'distance_km ASC' : orderBy.newest);
+      const rentalBucketSort = "CASE WHEN COALESCE(p.is_rented_out, 0) = 1 AND p.rented_out_by = 'himhomes' THEN 1 ELSE 0 END ASC";
 
       const whereClause = conditions.join(' AND ');
       const sql = `
@@ -209,11 +215,13 @@ const Property = {
           p.carpet_area,
           p.furnishing,
           p.status,
+          COALESCE(p.is_rented_out, 0) AS is_rented_out,
+          p.rented_out_by,
           p.created_at,
           (SELECT pi.image_url FROM property_images pi WHERE pi.property_id = p.property_id ORDER BY pi.image_order ASC, pi.image_id ASC LIMIT 1) AS cover_image
         FROM properties p
         WHERE ${whereClause}
-        ORDER BY ${sort}
+        ORDER BY ${rentalBucketSort}, ${sort}
       `;
 
       const queryValues = usingRadiusSearch
@@ -505,7 +513,11 @@ const Property = {
           u.email AS owner_email
         FROM properties p
         LEFT JOIN users u ON p.owner_id = u.user_id
-        WHERE p.property_id = ? AND p.status = 'active'
+        WHERE p.property_id = ?
+          AND (
+            p.status = 'active'
+            OR COALESCE(p.is_rented_out, 0) = 1
+          )
         LIMIT 1
       `;
       db.query(sql, [propertyId], (err, results) => {
