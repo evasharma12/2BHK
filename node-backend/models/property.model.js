@@ -31,10 +31,11 @@ const Property = {
           maintenance_charges,
           security_deposit,
           description,
-          available_from
+          available_from,
+          secondary_phone_number
         )
         VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_SRID(POINT(?, ?), 4326), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_SRID(POINT(?, ?), 4326), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
       `;
 
@@ -66,6 +67,7 @@ const Property = {
         security_deposit,
         description,
         available_from,
+        secondary_phone_number,
       } = propertyData;
 
       db.query(
@@ -98,6 +100,7 @@ const Property = {
           security_deposit || null,
           description || null,
           available_from || null,
+          secondary_phone_number || null,
         ],
         (err, result) => {
           if (err) return reject(err);
@@ -438,7 +441,7 @@ const Property = {
       'address_text',
       'built_up_area', 'carpet_area', 'total_floors', 'floor_number', 'bedrooms', 'bathrooms', 'balconies',
       'property_age', 'furnishing', 'facing', 'expected_price', 'price_negotiable', 'maintenance_charges',
-      'security_deposit', 'description', 'available_from',
+      'security_deposit', 'description', 'available_from', 'secondary_phone_number',
     ];
     const setParts = [];
     const values = [];

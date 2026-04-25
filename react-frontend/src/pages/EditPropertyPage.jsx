@@ -35,6 +35,7 @@ const mapBackendToFormData = (p) => {
     securityDeposit: p.security_deposit || '',
     description: p.description || '',
     availableFrom: p.available_from || '',
+    secondaryPhoneNumber: p.secondary_phone_number || '',
     amenities: Array.isArray(p.amenities) ? p.amenities : [],
     images: (p.images || []).map((url) => ({ url, preview: url })),
   };

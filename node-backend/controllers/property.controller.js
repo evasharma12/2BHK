@@ -21,6 +21,19 @@ function isValidPhoneInput(phone) {
   return /^\d{10}$/.test(normalized) || /^91\d{10}$/.test(normalized);
 }
 
+function normalizeSecondaryPhoneInput(phone) {
+  if (phone === undefined || phone === null) return null;
+  const trimmed = String(phone).trim();
+  if (!trimmed) return null;
+  const digitsOnly = trimmed.replace(/\D/g, '');
+  if (!isValidPhoneInput(digitsOnly)) {
+    throw new Error('Invalid secondary mobile number. Please enter a valid Indian mobile number.');
+  }
+  return digitsOnly.length === 12 && digitsOnly.startsWith('91')
+    ? digitsOnly.slice(2)
+    : digitsOnly;
+}
+
 function upsertPrimaryPhone(userId, phone_number) {
   const rawPhone = normalizePhoneInput(phone_number);
   if (!rawPhone) return Promise.resolve();
@@ -186,6 +199,9 @@ class PropertyController {
       }
 
       const mobileNo = body.mobile_no || body.mobileNo;
+      const secondaryPhoneNumber = normalizeSecondaryPhoneInput(
+        body.secondary_phone_number ?? body.secondaryPhoneNumber
+      );
       const { latitude, longitude } = parseAndValidateCoordinates(body);
 
       const propertyData = {
@@ -217,6 +233,7 @@ class PropertyController {
         security_deposit: body.security_deposit || null,
         description: body.description || null,
         available_from: body.available_from || null,
+        secondary_phone_number: secondaryPhoneNumber,
       };
 
       if (mobileNo) {
@@ -243,6 +260,7 @@ class PropertyController {
       console.error('Create property error:', error);
       if (
         error?.message?.includes('Invalid mobile number') ||
+        error?.message?.includes('Invalid secondary mobile number') ||
         error?.message?.includes('Latitude') ||
         error?.message?.includes('longitude')
       ) {
@@ -476,6 +494,9 @@ class PropertyController {
       }
 
       const mobileNo = body.mobile_no || body.mobileNo;
+      const secondaryPhoneNumber = normalizeSecondaryPhoneInput(
+        body.secondary_phone_number ?? body.secondaryPhoneNumber
+      );
       const { latitude, longitude } = parseAndValidateCoordinates(body);
 
       const updateData = {
@@ -506,6 +527,7 @@ class PropertyController {
         security_deposit: body.security_deposit || null,
         description: body.description || null,
         available_from: body.available_from || null,
+        secondary_phone_number: secondaryPhoneNumber,
       };
       if (body.amenities && Array.isArray(body.amenities)) {
         updateData.amenities = body.amenities;
@@ -534,6 +556,7 @@ class PropertyController {
       console.error('Update property error:', error);
       if (
         error?.message?.includes('Invalid mobile number') ||
+        error?.message?.includes('Invalid secondary mobile number') ||
         error?.message?.includes('Latitude') ||
         error?.message?.includes('longitude')
       ) {
