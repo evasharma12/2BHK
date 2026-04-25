@@ -27,6 +27,22 @@ const OwnerContact = ({ formData, updateFormData }) => {
         />
       </div>
 
+      <div className="form-field form-field--full">
+        <label htmlFor="secondaryPhoneNumber" className="field-label">
+          Secondary Phone Number (Optional)
+        </label>
+        <input
+          type="tel"
+          id="secondaryPhoneNumber"
+          className="field-input"
+          value={formData.secondaryPhoneNumber || ''}
+          onChange={(e) => updateFormData('secondaryPhoneNumber', e.target.value)}
+          placeholder="e.g. 9876543210"
+          inputMode="tel"
+          maxLength={15}
+        />
+      </div>
+
       {/* Terms and Conditions */}
       <div className="terms-section">
         <label className="checkbox-label checkbox-label--terms">

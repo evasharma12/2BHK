@@ -87,6 +87,7 @@ const PropertyDetailPage = () => {
       ownerName: p.owner_name,
       ownerEmail: p.owner_email,
       ownerPhone: p.owner_phone,
+      ownerSecondaryPhone: p.secondary_phone_number || '',
       images: p.images || [],
       amenities: p.amenities || [],
       lat: normalizedCoords.lat,
