@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../storage/dbConnection');
 const Property = require('../models/property.model');
+const AdminUser = require('../models/adminUser.model');
 const User = require('../models/user.model');
 const { isConfigured: cloudinaryConfigured, uploadStream: cloudinaryUpload } = require('../config/cloudinary');
 
@@ -19,6 +20,19 @@ function isValidPhoneInput(phone) {
   // - optional leading + (e.g., +919876543210)
   const normalized = phone.startsWith('+') ? phone.slice(1) : phone;
   return /^\d{10}$/.test(normalized) || /^91\d{10}$/.test(normalized);
+}
+
+function normalizeSecondaryPhoneInput(phone) {
+  if (phone === undefined || phone === null) return null;
+  const trimmed = String(phone).trim();
+  if (!trimmed) return null;
+  const digitsOnly = trimmed.replace(/\D/g, '');
+  if (!isValidPhoneInput(digitsOnly)) {
+    throw new Error('Invalid secondary mobile number. Please enter a valid Indian mobile number.');
+  }
+  return digitsOnly.length === 12 && digitsOnly.startsWith('91')
+    ? digitsOnly.slice(2)
+    : digitsOnly;
 }
 
 function upsertPrimaryPhone(userId, phone_number) {
@@ -186,6 +200,9 @@ class PropertyController {
       }
 
       const mobileNo = body.mobile_no || body.mobileNo;
+      const secondaryPhoneNumber = normalizeSecondaryPhoneInput(
+        body.secondary_phone_number ?? body.secondaryPhoneNumber
+      );
       const { latitude, longitude } = parseAndValidateCoordinates(body);
 
       const propertyData = {
@@ -217,6 +234,7 @@ class PropertyController {
         security_deposit: body.security_deposit || null,
         description: body.description || null,
         available_from: body.available_from || null,
+        secondary_phone_number: secondaryPhoneNumber,
       };
 
       if (mobileNo) {
@@ -243,6 +261,7 @@ class PropertyController {
       console.error('Create property error:', error);
       if (
         error?.message?.includes('Invalid mobile number') ||
+        error?.message?.includes('Invalid secondary mobile number') ||
         error?.message?.includes('Latitude') ||
         error?.message?.includes('longitude')
       ) {
@@ -476,6 +495,9 @@ class PropertyController {
       }
 
       const mobileNo = body.mobile_no || body.mobileNo;
+      const secondaryPhoneNumber = normalizeSecondaryPhoneInput(
+        body.secondary_phone_number ?? body.secondaryPhoneNumber
+      );
       const { latitude, longitude } = parseAndValidateCoordinates(body);
 
       const updateData = {
@@ -506,6 +528,7 @@ class PropertyController {
         security_deposit: body.security_deposit || null,
         description: body.description || null,
         available_from: body.available_from || null,
+        secondary_phone_number: secondaryPhoneNumber,
       };
       if (body.amenities && Array.isArray(body.amenities)) {
         updateData.amenities = body.amenities;
@@ -513,7 +536,10 @@ class PropertyController {
       if (body.image_urls && Array.isArray(body.image_urls)) {
         updateData.image_urls = body.image_urls;
       }
-      const affectedRows = await Property.update(propertyId, userId, updateData);
+      const isAdmin = await AdminUser.isActiveAdmin(userId);
+      const affectedRows = await Property.update(propertyId, userId, updateData, {
+        allowCrossOwnerEdit: isAdmin,
+      });
       if (affectedRows === 0) {
         return res.status(404).json({
           success: false,
@@ -534,6 +560,7 @@ class PropertyController {
       console.error('Update property error:', error);
       if (
         error?.message?.includes('Invalid mobile number') ||
+        error?.message?.includes('Invalid secondary mobile number') ||
         error?.message?.includes('Latitude') ||
         error?.message?.includes('longitude')
       ) {

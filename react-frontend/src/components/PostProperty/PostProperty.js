@@ -37,6 +37,7 @@ const defaultFormData = {
   images: [],
   description: '',
   availableFrom: '',
+  secondaryPhoneNumber: '',
 };
 
 const PostProperty = ({ propertyId = null, initialFormData = null }) => {
@@ -219,6 +220,7 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
         security_deposit: formData.securityDeposit,
         description: formData.description,
         available_from: formData.availableFrom,
+        secondary_phone_number: String(formData.secondaryPhoneNumber || '').trim() || null,
         amenities: formData.amenities || [],
         image_urls: imageUrls,
       };

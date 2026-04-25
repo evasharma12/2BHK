@@ -31,10 +31,11 @@ const Property = {
           maintenance_charges,
           security_deposit,
           description,
-          available_from
+          available_from,
+          secondary_phone_number
         )
         VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_SRID(POINT(?, ?), 4326), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_SRID(POINT(?, ?), 4326), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
       `;
 
@@ -66,6 +67,7 @@ const Property = {
         security_deposit,
         description,
         available_from,
+        secondary_phone_number,
       } = propertyData;
 
       db.query(
@@ -98,6 +100,7 @@ const Property = {
           security_deposit || null,
           description || null,
           available_from || null,
+          secondary_phone_number || null,
         ],
         (err, result) => {
           if (err) return reject(err);
@@ -115,8 +118,13 @@ const Property = {
   // Get active properties with optional filters (query params from frontend)
   async findAllWithFilters(filters) {
     return new Promise((resolve, reject) => {
-      const conditions = ['p.status = ?'];
-      const values = ['active'];
+      const conditions = [
+        `(
+          (p.status = 'active' AND COALESCE(p.is_rented_out, 0) = 0)
+          OR (COALESCE(p.is_rented_out, 0) = 1 AND p.rented_out_by = 'himhomes')
+        )`
+      ];
+      const values = [];
       let distanceExpr = 'NULL';
       let usingRadiusSearch = false;
 
@@ -189,6 +197,7 @@ const Property = {
         filters.sort && orderBy[filters.sort]
           ? orderBy[filters.sort]
           : (usingRadiusSearch ? 'distance_km ASC' : orderBy.newest);
+      const rentalBucketSort = "CASE WHEN COALESCE(p.is_rented_out, 0) = 1 AND p.rented_out_by = 'himhomes' THEN 1 ELSE 0 END ASC";
 
       const whereClause = conditions.join(' AND ');
       const sql = `
@@ -209,11 +218,13 @@ const Property = {
           p.carpet_area,
           p.furnishing,
           p.status,
+          COALESCE(p.is_rented_out, 0) AS is_rented_out,
+          p.rented_out_by,
           p.created_at,
           (SELECT pi.image_url FROM property_images pi WHERE pi.property_id = p.property_id ORDER BY pi.image_order ASC, pi.image_id ASC LIMIT 1) AS cover_image
         FROM properties p
         WHERE ${whereClause}
-        ORDER BY ${sort}
+        ORDER BY ${rentalBucketSort}, ${sort}
       `;
 
       const queryValues = usingRadiusSearch
@@ -227,7 +238,7 @@ const Property = {
     });
   },
 
-  // Delete a property (only if owned by ownerId) and log owner feedback. Returns affected row count.
+  // Soft-delete a property (only if owned by ownerId) and log owner feedback. Returns affected row count.
   async deleteById(propertyId, ownerId, rentedViaHimHomes) {
     return new Promise((resolve, reject) => {
       db.getConnection((connErr, conn) => {
@@ -295,13 +306,21 @@ const Property = {
                   }
 
                   conn.query(
-                    'DELETE FROM properties WHERE property_id = ? AND owner_id = ?',
-                    [propertyId, ownerId],
-                    (deleteErr, deleteResult) => {
-                      if (deleteErr) {
+                    `
+                      UPDATE properties
+                      SET
+                        is_rented_out = 1,
+                        rented_out_by = ?,
+                        status = 'inactive',
+                        updated_at = CURRENT_TIMESTAMP
+                      WHERE property_id = ? AND owner_id = ?
+                    `,
+                    [rentedViaHimHomes ? 'himhomes' : 'other', propertyId, ownerId],
+                    (updateErr, updateResult) => {
+                      if (updateErr) {
                         return conn.rollback(() => {
                           conn.release();
-                          reject(deleteErr);
+                          reject(updateErr);
                         });
                       }
 
@@ -313,7 +332,7 @@ const Property = {
                           });
                         }
                         conn.release();
-                        resolve(deleteResult.affectedRows);
+                        resolve(updateResult.affectedRows);
                       });
                     }
                   );
@@ -416,13 +435,13 @@ const Property = {
     });
   },
 
-  async update(propertyId, ownerId, updateData) {
+  async update(propertyId, ownerId, updateData, options = {}) {
     const allowed = [
       'property_for', 'property_type', 'bhk_type', 'locality', 'city', 'state', 'pincode',
       'address_text',
       'built_up_area', 'carpet_area', 'total_floors', 'floor_number', 'bedrooms', 'bathrooms', 'balconies',
       'property_age', 'furnishing', 'facing', 'expected_price', 'price_negotiable', 'maintenance_charges',
-      'security_deposit', 'description', 'available_from',
+      'security_deposit', 'description', 'available_from', 'secondary_phone_number',
     ];
     const setParts = [];
     const values = [];
@@ -447,11 +466,25 @@ const Property = {
       return 0;
     }
     let affectedRows = 0;
+    const canEditAnyProperty = options && options.allowCrossOwnerEdit === true;
+    const propertyUpdateWhere = canEditAnyProperty
+      ? 'WHERE property_id = ?'
+      : 'WHERE property_id = ? AND owner_id = ?';
+    const propertyExistsWhere = canEditAnyProperty
+      ? 'WHERE property_id = ?'
+      : 'WHERE property_id = ? AND owner_id = ?';
+    const propertyUpdateArgs = canEditAnyProperty
+      ? [...values, propertyId]
+      : [...values, propertyId, ownerId];
+    const propertyExistsArgs = canEditAnyProperty
+      ? [propertyId]
+      : [propertyId, ownerId];
+
     if (setParts.length > 0) {
       const result = await new Promise((resolve, reject) => {
         db.query(
-          `UPDATE properties SET ${setParts.join(', ')} WHERE property_id = ? AND owner_id = ?`,
-          [...values, propertyId, ownerId],
+          `UPDATE properties SET ${setParts.join(', ')} ${propertyUpdateWhere}`,
+          propertyUpdateArgs,
           (err, result) => (err ? reject(err) : resolve(result))
         );
       });
@@ -459,8 +492,8 @@ const Property = {
     } else {
       const row = await new Promise((resolve, reject) => {
         db.query(
-          'SELECT 1 FROM properties WHERE property_id = ? AND owner_id = ? LIMIT 1',
-          [propertyId, ownerId],
+          `SELECT 1 FROM properties ${propertyExistsWhere} LIMIT 1`,
+          propertyExistsArgs,
           (err, rows) => (err ? reject(err) : resolve(rows && rows.length ? 1 : 0))
         );
       });
@@ -497,7 +530,11 @@ const Property = {
           u.email AS owner_email
         FROM properties p
         LEFT JOIN users u ON p.owner_id = u.user_id
-        WHERE p.property_id = ? AND p.status = 'active'
+        WHERE p.property_id = ?
+          AND (
+            p.status = 'active'
+            OR COALESCE(p.is_rented_out, 0) = 1
+          )
         LIMIT 1
       `;
       db.query(sql, [propertyId], (err, results) => {
