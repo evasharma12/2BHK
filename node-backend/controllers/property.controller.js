@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../storage/dbConnection');
 const Property = require('../models/property.model');
+const AdminUser = require('../models/adminUser.model');
 const User = require('../models/user.model');
 const { isConfigured: cloudinaryConfigured, uploadStream: cloudinaryUpload } = require('../config/cloudinary');
 
@@ -535,7 +536,10 @@ class PropertyController {
       if (body.image_urls && Array.isArray(body.image_urls)) {
         updateData.image_urls = body.image_urls;
       }
-      const affectedRows = await Property.update(propertyId, userId, updateData);
+      const isAdmin = await AdminUser.isActiveAdmin(userId);
+      const affectedRows = await Property.update(propertyId, userId, updateData, {
+        allowCrossOwnerEdit: isAdmin,
+      });
       if (affectedRows === 0) {
         return res.status(404).json({
           success: false,

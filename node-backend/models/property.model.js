@@ -435,7 +435,7 @@ const Property = {
     });
   },
 
-  async update(propertyId, ownerId, updateData) {
+  async update(propertyId, ownerId, updateData, options = {}) {
     const allowed = [
       'property_for', 'property_type', 'bhk_type', 'locality', 'city', 'state', 'pincode',
       'address_text',
@@ -466,11 +466,25 @@ const Property = {
       return 0;
     }
     let affectedRows = 0;
+    const canEditAnyProperty = options && options.allowCrossOwnerEdit === true;
+    const propertyUpdateWhere = canEditAnyProperty
+      ? 'WHERE property_id = ?'
+      : 'WHERE property_id = ? AND owner_id = ?';
+    const propertyExistsWhere = canEditAnyProperty
+      ? 'WHERE property_id = ?'
+      : 'WHERE property_id = ? AND owner_id = ?';
+    const propertyUpdateArgs = canEditAnyProperty
+      ? [...values, propertyId]
+      : [...values, propertyId, ownerId];
+    const propertyExistsArgs = canEditAnyProperty
+      ? [propertyId]
+      : [propertyId, ownerId];
+
     if (setParts.length > 0) {
       const result = await new Promise((resolve, reject) => {
         db.query(
-          `UPDATE properties SET ${setParts.join(', ')} WHERE property_id = ? AND owner_id = ?`,
-          [...values, propertyId, ownerId],
+          `UPDATE properties SET ${setParts.join(', ')} ${propertyUpdateWhere}`,
+          propertyUpdateArgs,
           (err, result) => (err ? reject(err) : resolve(result))
         );
       });
@@ -478,8 +492,8 @@ const Property = {
     } else {
       const row = await new Promise((resolve, reject) => {
         db.query(
-          'SELECT 1 FROM properties WHERE property_id = ? AND owner_id = ? LIMIT 1',
-          [propertyId, ownerId],
+          `SELECT 1 FROM properties ${propertyExistsWhere} LIMIT 1`,
+          propertyExistsArgs,
           (err, rows) => (err ? reject(err) : resolve(rows && rows.length ? 1 : 0))
         );
       });
