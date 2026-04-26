@@ -96,9 +96,10 @@ const PropertiesListPage = () => {
         const data = await api.getProperties(apiParams);
         if (cancelled) return;
         const backendProps = (data.data || []).map((p) => ({
+          // Fallback for legacy rows where invalid ENUM values were saved as '' before enum migration.
           id: p.property_id,
           propertyFor: p.property_for,
-          propertyType: p.property_type,
+          propertyType: p.property_type || (String(p.bhk_type || '').toLowerCase() === '1rk' ? 'pg' : ''),
           bhk: p.bhk_type,
           locality: p.locality,
           city: p.city,

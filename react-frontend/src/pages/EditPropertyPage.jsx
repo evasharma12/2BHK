@@ -7,16 +7,37 @@ import './EditPropertyPage.css';
 
 const mapBackendToFormData = (p) => {
   if (!p) return null;
+  const collapsedAddress = (() => {
+    const text = String(p.address_text || '').trim().replace(/\s+/g, ' ');
+    const repeatedPattern = /^(.*?),\s*\1$/;
+    const match = text.match(repeatedPattern);
+    return match ? match[1].trim() : text;
+  })();
+  const indiaMarker = ', India';
+  const indiaIndex = collapsedAddress.indexOf(indiaMarker);
+  const hasTrailingDetailsAfterMaps =
+    indiaIndex !== -1 &&
+    collapsedAddress
+      .slice(indiaIndex + indiaMarker.length)
+      .replace(/^[,\s]+/, '')
+      .trim()
+      .length > 0;
+  const mapsAddressPart = hasTrailingDetailsAfterMaps
+    ? collapsedAddress.slice(0, indiaIndex + indiaMarker.length).trim()
+    : collapsedAddress;
+  const addressTextPart = hasTrailingDetailsAfterMaps
+    ? collapsedAddress.slice(indiaIndex + indiaMarker.length).replace(/^[,\s]+/, '').trim()
+    : '';
   return {
     propertyFor: p.property_for,
     propertyType: p.property_type,
     bhk: p.bhk_type,
-    address: p.address_text || '',
+    address: mapsAddressPart,
     addressPlaceId:
       p.address_text && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng))
         ? '__existing__'
         : '',
-    addressText: p.address_text || '',
+    addressText: addressTextPart,
     latitude: p.lat ?? '',
     longitude: p.lng ?? '',
     locality: p.locality || '',

@@ -309,12 +309,12 @@ const PropertyBasicInfo = ({
       </div>
 
       <div className="form-field form-field--full">
-        <label htmlFor="addressText" className="field-label">Address Details (Optional)</label>
+        <label htmlFor="addressText" className="field-label">House Number and Apartment Name (Optional)</label>
         <input
           type="text"
           id="addressText"
           className="field-input"
-          placeholder="Landmark, tower, floor, or nearby reference"
+          placeholder="e.g., Flat 203, Sunshine Residency"
           value={formData.addressText || ''}
           onChange={(e) => updateFormData('addressText', e.target.value)}
         />

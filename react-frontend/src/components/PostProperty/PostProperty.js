@@ -192,7 +192,8 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
 
       const selectedAddress = String(formData.address || '').trim();
       const customAddressDetails = String(formData.addressText || '').trim();
-      const fullAddressText = [selectedAddress, customAddressDetails]
+      // Persist in display order: house/apartment info first, then maps address.
+      const fullAddressText = [customAddressDetails, selectedAddress]
         .filter(Boolean)
         .join(', ');
 

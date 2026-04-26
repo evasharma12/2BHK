@@ -28,6 +28,33 @@ function normalizeIndiaCoordinates(latValue, lngValue) {
   return { lat, lng };
 }
 
+function collapseRepeatedCombinedAddress(rawValue) {
+  const text = String(rawValue || '').trim().replace(/\s+/g, ' ');
+  if (!text) return '';
+  const repeatedPattern = /^(.*?),\s*\1$/;
+  const match = text.match(repeatedPattern);
+  return match ? match[1].trim() : text;
+}
+
+function formatAddressForDisplay(rawValue) {
+  const normalized = collapseRepeatedCombinedAddress(rawValue);
+  if (!normalized) return '';
+
+  const indiaMarker = ', India';
+  const indiaIndex = normalized.indexOf(indiaMarker);
+  if (indiaIndex === -1) return normalized;
+
+  const mapsPart = normalized.slice(0, indiaIndex + indiaMarker.length).trim();
+  const trailingPart = normalized.slice(indiaIndex + indiaMarker.length).replace(/^[,\s]+/, '').trim();
+
+  // Legacy format was "maps address, house/apartment". Display as requested: "house/apartment, maps address".
+  if (trailingPart) {
+    return `${trailingPart}, ${mapsPart}`;
+  }
+
+  return normalized;
+}
+
 const PropertyDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -57,14 +84,18 @@ const PropertyDetailPage = () => {
   const mapBackendToFrontend = (p) => {
     if (!p) return null;
     const normalizedCoords = normalizeIndiaCoordinates(p.lat, p.lng);
+    // Fallback for legacy rows where invalid ENUM values were saved as '' before enum migration.
+    const normalizedPropertyType =
+      p.property_type || (String(p.bhk_type || '').toLowerCase() === '1rk' ? 'pg' : '');
+    const formattedAddress = formatAddressForDisplay(p.address_text || '');
     return {
       id: p.property_id,
       ownerId: p.owner_id,
       propertyFor: p.property_for,
-      propertyType: p.property_type,
+      propertyType: normalizedPropertyType,
       bhk: p.bhk_type,
-      // Backend stores address details in address_text.
-      address: p.address_text || '',
+      // Backend stores combined address details in address_text.
+      address: formattedAddress,
       locality: p.locality,
       city: p.city,
       state: p.state,
@@ -193,10 +224,7 @@ const PropertyDetailPage = () => {
     if (hasCoordinates) {
       return `https://www.google.com/maps?q=${property.lat},${property.lng}&z=16&output=embed`;
     }
-    const query = [property.address, property.locality, property.city, property.pincode]
-      .filter(Boolean)
-      .join(', ')
-      .trim();
+    const query = String(property.address || '').trim();
     if (!query) return '';
     return `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=16&output=embed`;
   }, [property]);
@@ -336,8 +364,7 @@ const PropertyDetailPage = () => {
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
-              {[property.address, property.locality, property.city].filter(Boolean).join(', ')}
-              {property.pincode ? ` - ${property.pincode}` : ''}
+              {property.address}
             </div>
           </div>
           <div className="header-price">

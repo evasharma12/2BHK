@@ -146,6 +146,25 @@ function parseRadiusSearchQuery(query) {
   return { lat, lng, radius_km };
 }
 
+const ALLOWED_PROPERTY_TYPES = new Set([
+  'apartment',
+  'pg',
+  'independent-house',
+  'villa',
+  'builder-floor',
+  'studio',
+  'penthouse',
+  'commercial',
+]);
+
+function normalizePropertyTypeInput(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function normalizeBhkTypeInput(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
 class PropertyController {
   static parseRentedViaHimHomesInput(value) {
     if (value === true || value === false) return value;
@@ -204,12 +223,29 @@ class PropertyController {
         body.secondary_phone_number ?? body.secondaryPhoneNumber
       );
       const { latitude, longitude } = parseAndValidateCoordinates(body);
+      const normalizedPropertyType = normalizePropertyTypeInput(body.property_type);
+      if (!ALLOWED_PROPERTY_TYPES.has(normalizedPropertyType)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid property_type. Allowed values include apartment, pg, independent-house, villa, builder-floor, studio, penthouse, commercial.',
+        });
+      }
+      let normalizedBhkType = normalizeBhkTypeInput(body.bhk_type);
+      if (normalizedPropertyType === 'pg') {
+        normalizedBhkType = '1rk';
+      }
+      if (!normalizedBhkType) {
+        return res.status(400).json({
+          success: false,
+          message: 'bhk_type is required.',
+        });
+      }
 
       const propertyData = {
         owner_id: ownerId,
         property_for: body.property_for,
-        property_type: body.property_type,
-        bhk_type: body.bhk_type,
+        property_type: normalizedPropertyType,
+        bhk_type: normalizedBhkType,
         address_text: body.address_text,
         locality: body.locality,
         city: body.city,
@@ -499,11 +535,28 @@ class PropertyController {
         body.secondary_phone_number ?? body.secondaryPhoneNumber
       );
       const { latitude, longitude } = parseAndValidateCoordinates(body);
+      const normalizedPropertyType = normalizePropertyTypeInput(body.property_type);
+      if (!ALLOWED_PROPERTY_TYPES.has(normalizedPropertyType)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid property_type. Allowed values include apartment, pg, independent-house, villa, builder-floor, studio, penthouse, commercial.',
+        });
+      }
+      let normalizedBhkType = normalizeBhkTypeInput(body.bhk_type);
+      if (normalizedPropertyType === 'pg') {
+        normalizedBhkType = '1rk';
+      }
+      if (!normalizedBhkType) {
+        return res.status(400).json({
+          success: false,
+          message: 'bhk_type is required.',
+        });
+      }
 
       const updateData = {
         property_for: body.property_for,
-        property_type: body.property_type,
-        bhk_type: body.bhk_type,
+        property_type: normalizedPropertyType,
+        bhk_type: normalizedBhkType,
         address_text: body.address_text,
         locality: body.locality,
         city: body.city,
