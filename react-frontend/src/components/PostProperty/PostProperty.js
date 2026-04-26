@@ -63,6 +63,11 @@ const PostProperty = ({ propertyId = null, initialFormData = null, user = null }
       activeUser?.role === 'admin' ||
       activeUser?.user_role === 'admin'
   );
+  const isPhantomEditMode = Boolean(
+    isEditMode &&
+      canPostForOthers &&
+      String(formData?.ownershipMode || '').toLowerCase() === 'phantom_owner'
+  );
 
   useEffect(() => {
     if (isEditMode) return;
@@ -235,21 +240,26 @@ const PostProperty = ({ propertyId = null, initialFormData = null, user = null }
       };
 
       const wantsPhantomPost = !isEditMode && canPostForOthers && Boolean(formData.postForSomeoneElse);
-      if (wantsPhantomPost) {
+      const needsPhantomOwnerPayload = wantsPhantomPost || isPhantomEditMode;
+      if (needsPhantomOwnerPayload) {
         const ownerName = String(formData.ownerName || '').trim();
         const ownerPhoneNumber = String(formData.ownerPhoneNumber || '').trim();
         if (!ownerName) {
-          throw new Error('Owner name is required when posting for someone else.');
+          throw new Error('Owner name is required for phantom owner listings.');
         }
         if (!ownerPhoneNumber) {
-          throw new Error('Owner phone number is required when posting for someone else.');
+          throw new Error('Owner phone number is required for phantom owner listings.');
         }
         payload.owner_name = ownerName;
         payload.owner_phone_number = ownerPhoneNumber;
       }
 
       if (isEditMode) {
-        await api.updateProperty(propertyId, payload);
+        if (isPhantomEditMode) {
+          await api.updatePhantomProperty(propertyId, payload);
+        } else {
+          await api.updateProperty(propertyId, payload);
+        }
         localStorage.removeItem(draftStorageKey);
         showToast('Property updated successfully!');
         navigate(`/properties/${propertyId}`);
@@ -324,6 +334,7 @@ const PostProperty = ({ propertyId = null, initialFormData = null, user = null }
             updateFormData={updateFormData}
             canPostForOthers={canPostForOthers}
             isEditMode={isEditMode}
+            isPhantomEditMode={isPhantomEditMode}
           />
         );
       default:

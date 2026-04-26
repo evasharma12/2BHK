@@ -1,7 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const OwnerContact = ({ formData, updateFormData, canPostForOthers = false, isEditMode = false }) => {
+const OwnerContact = ({
+  formData,
+  updateFormData,
+  canPostForOthers = false,
+  isEditMode = false,
+  isPhantomEditMode = false,
+}) => {
+  const showPhantomCreateToggle = canPostForOthers && !isEditMode;
+  const showPhantomOwnerFields = Boolean(formData.postForSomeoneElse || isPhantomEditMode);
+
   return (
     <div className="form-section">
       <div className="contact-info">
@@ -27,7 +36,7 @@ const OwnerContact = ({ formData, updateFormData, canPostForOthers = false, isEd
         />
       </div>
 
-      {canPostForOthers && !isEditMode ? (
+      {showPhantomCreateToggle ? (
         <>
           <div className="form-field form-field--full">
             <label className="checkbox-label">
@@ -43,7 +52,7 @@ const OwnerContact = ({ formData, updateFormData, canPostForOthers = false, isEd
             </label>
           </div>
 
-          {formData.postForSomeoneElse ? (
+          {showPhantomOwnerFields ? (
             <>
               <div className="form-field form-field--full">
                 <label htmlFor="ownerName" className="field-label">
@@ -79,6 +88,43 @@ const OwnerContact = ({ formData, updateFormData, canPostForOthers = false, isEd
               </div>
             </>
           ) : null}
+        </>
+      ) : null}
+
+      {isPhantomEditMode ? (
+        <>
+          <div className="form-field form-field--full">
+            <label htmlFor="ownerName" className="field-label">
+              Owner Name*
+            </label>
+            <input
+              type="text"
+              id="ownerName"
+              className="field-input"
+              value={formData.ownerName || ''}
+              onChange={(e) => updateFormData('ownerName', e.target.value)}
+              placeholder="Enter owner full name"
+              required
+            />
+          </div>
+
+          <div className="form-field form-field--full">
+            <label htmlFor="ownerPhoneNumber" className="field-label">
+              Owner Phone Number*
+            </label>
+            <input
+              type="tel"
+              id="ownerPhoneNumber"
+              className="field-input"
+              value={formData.ownerPhoneNumber || ''}
+              onChange={(e) =>
+                updateFormData('ownerPhoneNumber', e.target.value.replace(/[^\d+]/g, '').slice(0, 15))
+              }
+              placeholder="e.g. +919876543210"
+              inputMode="tel"
+              required
+            />
+          </div>
         </>
       ) : null}
 

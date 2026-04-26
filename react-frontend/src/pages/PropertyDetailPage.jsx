@@ -91,6 +91,9 @@ const PropertyDetailPage = () => {
     return {
       id: p.property_id,
       ownerId: p.owner_id,
+      ownerProfileId: p.owner_profile_id,
+      ownershipMode: p.ownership_mode || 'registered_owner',
+      chatOwnerUserId: p.chat_owner_user_id || null,
       propertyFor: p.property_for,
       propertyType: normalizedPropertyType,
       bhk: p.bhk_type,
@@ -116,9 +119,9 @@ const PropertyDetailPage = () => {
       securityDeposit: p.security_deposit,
       description: p.description || '',
       availableFrom: p.available_from,
-      ownerName: p.owner_name,
+      ownerName: p.display_owner_name || p.owner_name || '',
       ownerEmail: p.owner_email,
-      ownerPhone: p.owner_phone,
+      ownerPhone: p.display_owner_phone || p.owner_phone || '',
       ownerSecondaryPhone:
         p.secondary_phone_number ||
         p.owner_secondary_phone ||
@@ -142,6 +145,17 @@ const PropertyDetailPage = () => {
       property.isRentedOut);
   const closedPropertyLabel = property?.propertyFor === 'rent' ? 'Rented Out' : 'Sold Out';
   const closedWatermarkLabel = property?.propertyFor === 'rent' ? 'RENTED OUT' : 'SOLD OUT';
+  const canEditProperty =
+    Boolean(user && property) &&
+    (
+      (property.ownerId && Number(user.user_id) === Number(property.ownerId))
+      || (
+        Number(user?.is_admin || 0) === 1
+        && property.ownershipMode === 'phantom_owner'
+        && property.chatOwnerUserId != null
+        && Number(user.user_id) === Number(property.chatOwnerUserId)
+      )
+    );
 
   const fetchProperty = async (propertyId) => {
     if (!propertyId) return;
@@ -379,7 +393,7 @@ const PropertyDetailPage = () => {
                 <div className="negotiable-tag">Negotiable</div>
               )}
             </div>
-            {user && property.ownerId && user.user_id === property.ownerId && (
+            {canEditProperty && (
               <button
                 type="button"
                 className="edit-property-btn"

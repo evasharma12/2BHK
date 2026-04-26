@@ -232,6 +232,28 @@ export const api = {
     return data;
   },
 
+  async updatePhantomProperty(id, propertyData) {
+    const token = this.getAuthToken();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/properties/admin/phantom/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(propertyData),
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'update phantom property');
+    }
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to update phantom property');
+    }
+    return data;
+  },
+
   async getMyListings() {
     const token = this.getAuthToken();
     const response = await fetch(`${API_BASE_URL}/api/properties/my-listings`, {
