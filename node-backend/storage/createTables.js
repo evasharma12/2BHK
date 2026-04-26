@@ -28,6 +28,14 @@ function quoteIdentifier(name) {
   return '`' + String(name).replace(/`/g, '``') + '`';
 }
 
+function normalizeToE164India(phone) {
+  const digits = String(phone || '').trim().replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.length === 10) return `+91${digits}`;
+  if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+  return '';
+}
+
 /**
  * App schema name must not be a MySQL system database (common misconfiguration: DB_NAME=mysql).
  */
@@ -41,6 +49,127 @@ function assertApplicationDatabaseName(name) {
     );
   }
   return effective;
+}
+
+async function runLegacyAdminPhantomBackfill(connection) {
+  const shouldBackfill = String(process.env.PHANTOM_OWNER_BACKFILL_LEGACY || '').toLowerCase() === 'true';
+  if (!shouldBackfill) {
+    console.log('↷ Skipping legacy phantom-owner backfill (PHANTOM_OWNER_BACKFILL_LEGACY is not true)');
+    return;
+  }
+
+  const dryRun = String(process.env.PHANTOM_OWNER_BACKFILL_DRY_RUN || '').toLowerCase() === 'true';
+  const maxRowsRaw = parseInt(process.env.PHANTOM_OWNER_BACKFILL_LIMIT || '0', 10);
+  const maxRows = Number.isInteger(maxRowsRaw) && maxRowsRaw > 0 ? maxRowsRaw : 0;
+
+  const candidatesSql = `
+    SELECT
+      p.property_id,
+      p.owner_id AS admin_user_id,
+      p.secondary_phone_number
+    FROM properties p
+    INNER JOIN admin_users au
+      ON au.user_id = p.owner_id
+    WHERE p.owner_profile_id IS NULL
+      AND p.ownership_mode = 'registered_owner'
+      AND p.owner_id IS NOT NULL
+      AND p.secondary_phone_number IS NOT NULL
+      AND TRIM(p.secondary_phone_number) <> ''
+      ${maxRows > 0 ? 'LIMIT ?' : ''}
+  `;
+
+  const [candidateRows] = maxRows > 0
+    ? await connection.execute(candidatesSql, [maxRows])
+    : await connection.execute(candidatesSql);
+
+  if (!candidateRows.length) {
+    console.log('✓ Legacy phantom-owner backfill found no eligible properties');
+    return;
+  }
+
+  let updatedCount = 0;
+  let skippedInvalidPhone = 0;
+  let skippedNoAdmin = 0;
+
+  for (const row of candidateRows) {
+    const propertyId = row.property_id;
+    const adminUserId = row.admin_user_id;
+    const ownerPhoneE164 = normalizeToE164India(row.secondary_phone_number);
+
+    if (!adminUserId) {
+      skippedNoAdmin += 1;
+      continue;
+    }
+
+    if (!ownerPhoneE164) {
+      skippedInvalidPhone += 1;
+      continue;
+    }
+
+    const [profileRows] = await connection.execute(
+      `
+      SELECT owner_profile_id
+      FROM phantom_property_owner_profiles
+      WHERE owner_phone_number = ?
+      LIMIT 1
+      `,
+      [ownerPhoneE164]
+    );
+
+    let ownerProfileId = profileRows[0]?.owner_profile_id;
+    if (!ownerProfileId) {
+      const ownerLabelSuffix = ownerPhoneE164.slice(-4);
+      const [insertResult] = await connection.execute(
+        `
+        INSERT INTO phantom_property_owner_profiles (
+          owner_name,
+          owner_phone_number,
+          source,
+          created_by_user_id
+        )
+        VALUES (?, ?, 'manual_admin', ?)
+        `,
+        [`Legacy Owner ${ownerLabelSuffix}`, ownerPhoneE164, adminUserId]
+      );
+      ownerProfileId = insertResult.insertId;
+    }
+
+    if (dryRun) {
+      updatedCount += 1;
+      continue;
+    }
+
+    const [updateResult] = await connection.execute(
+      `
+      UPDATE properties
+      SET
+        owner_profile_id = ?,
+        ownership_mode = 'phantom_owner',
+        chat_owner_user_id = COALESCE(chat_owner_user_id, ?),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE property_id = ?
+        AND owner_profile_id IS NULL
+        AND ownership_mode = 'registered_owner'
+      `,
+      [ownerProfileId, adminUserId, propertyId]
+    );
+
+    if (updateResult.affectedRows > 0) {
+      updatedCount += 1;
+    }
+  }
+
+  if (dryRun) {
+    console.log(
+      `✓ Legacy phantom-owner backfill dry-run complete: would update ${updatedCount} properties ` +
+        `(skipped invalid phone: ${skippedInvalidPhone}, skipped no admin: ${skippedNoAdmin})`
+    );
+  } else {
+    console.log(
+      `✓ Legacy phantom-owner backfill complete: updated ${updatedCount} properties ` +
+        `(skipped invalid phone: ${skippedInvalidPhone}, skipped no admin: ${skippedNoAdmin})`
+    );
+  }
 }
 
 // Create database schema
@@ -521,6 +650,15 @@ async function createDatabaseSchema() {
       `);
     }
     console.log('✓ Ensured properties rental lifecycle and ownership columns/indexes exist');
+
+    // --------------------------------------------
+    // Rollout phase: optional legacy phantom-owner backfill
+    // --------------------------------------------
+    // This is intentionally opt-in and disabled by default so schema rollout
+    // remains non-breaking in all environments. When enabled, existing
+    // admin-posted listings that used secondary_phone_number are converted to
+    // phantom_owner mode and linked to owner profiles.
+    await runLegacyAdminPhantomBackfill(connection);
 
     // ============================================
     // 3b. PROPERTY_OWNER_CLAIMS TABLE

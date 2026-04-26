@@ -89,6 +89,19 @@ DB_HOST=<rds-endpoint> DB_USER=<rds-user> DB_PASSWORD=<rds-password> DB_NAME=2bh
 
 Replace placeholders with your RDS values. Run once per database.
 
+For phantom-owner rollout, prefer this sequence:
+
+1. **Schema-only rollout (default):** run `createTables.js` without backfill flags.
+2. **Backfill dry-run:** set `PHANTOM_OWNER_BACKFILL_LEGACY=true` and `PHANTOM_OWNER_BACKFILL_DRY_RUN=true` to inspect impact safely.
+3. **Live backfill (optional):** rerun with `PHANTOM_OWNER_BACKFILL_LEGACY=true` and `PHANTOM_OWNER_BACKFILL_DRY_RUN=false` (optionally set `PHANTOM_OWNER_BACKFILL_LIMIT` for batching).
+
+Example dry-run:
+
+```bash
+cd node-backend
+DB_HOST=<rds-endpoint> DB_USER=<rds-user> DB_PASSWORD=<rds-password> DB_NAME=2bhk_db DB_PORT=3306 PHANTOM_OWNER_BACKFILL_LEGACY=true PHANTOM_OWNER_BACKFILL_DRY_RUN=true PHANTOM_OWNER_BACKFILL_LIMIT=200 node storage/createTables.js
+```
+
 ---
 
 ## 5. Deploy the frontend (Vercel)
