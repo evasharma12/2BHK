@@ -11,6 +11,10 @@ router.get('/', PropertyController.getAllProperties);
 // My listings (auth; must be before /:id)
 router.get('/my-listings', authMiddleware, PropertyController.getMyListings);
 
+// Admin phantom listing create/update (auth + admin checks inside controller; must be before /:id)
+router.post('/admin/phantom', authMiddleware, PropertyController.createPhantomProperty);
+router.put('/admin/phantom/:id', authMiddleware, PropertyController.updatePhantomProperty);
+
 // Get single property by id
 router.get('/:id', PropertyController.getPropertyById);
 

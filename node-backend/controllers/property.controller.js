@@ -35,6 +35,34 @@ function normalizeSecondaryPhoneInput(phone) {
     : digitsOnly;
 }
 
+function normalizeIndianPhoneToE164(phone) {
+  if (phone === undefined || phone === null) return '';
+  const digitsOnly = String(phone).trim().replace(/\D/g, '');
+  if (!digitsOnly) return '';
+  if (!isValidPhoneInput(digitsOnly)) {
+    throw new Error('Invalid owner mobile number. Please enter a valid Indian mobile number.');
+  }
+  const phone10 = digitsOnly.length === 12 && digitsOnly.startsWith('91')
+    ? digitsOnly.slice(2)
+    : digitsOnly;
+  return `+91${phone10}`;
+}
+
+function ensureAdminWithVerifiedPrimaryPhone(userId) {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      SELECT up.phone_number
+      FROM user_phones up
+      WHERE up.user_id = ? AND up.is_primary = 1 AND up.is_verified = 1
+      LIMIT 1
+    `;
+    db.query(sql, [userId], (err, rows) => {
+      if (err) return reject(err);
+      resolve(rows && rows.length > 0);
+    });
+  });
+}
+
 function upsertPrimaryPhone(userId, phone_number) {
   const rawPhone = normalizePhoneInput(phone_number);
   if (!rawPhone) return Promise.resolve();
@@ -176,6 +204,77 @@ class PropertyController {
     return null;
   }
 
+  static buildPropertyDataFromBody(body, ownerId) {
+    const requiredFields = [
+      'property_for',
+      'property_type',
+      'bhk_type',
+      'locality',
+      'city',
+      'pincode',
+      'built_up_area',
+      'carpet_area',
+      'total_floors',
+      'floor_number',
+      'furnishing',
+      'expected_price',
+    ];
+
+    for (const field of requiredFields) {
+      if (!body[field]) {
+        throw new Error(`Missing required field: ${field}`);
+      }
+    }
+
+    const { latitude, longitude } = parseAndValidateCoordinates(body);
+    const normalizedPropertyType = normalizePropertyTypeInput(body.property_type);
+    if (!ALLOWED_PROPERTY_TYPES.has(normalizedPropertyType)) {
+      throw new Error('Invalid property_type. Allowed values include apartment, pg, independent-house, villa, builder-floor, studio, penthouse, commercial.');
+    }
+    let normalizedBhkType = normalizeBhkTypeInput(body.bhk_type);
+    if (normalizedPropertyType === 'pg') {
+      normalizedBhkType = '1rk';
+    }
+    if (!normalizedBhkType) {
+      throw new Error('bhk_type is required.');
+    }
+
+    const secondaryPhoneNumber = normalizeSecondaryPhoneInput(
+      body.secondary_phone_number ?? body.secondaryPhoneNumber
+    );
+
+    return {
+      owner_id: ownerId,
+      property_for: body.property_for,
+      property_type: normalizedPropertyType,
+      bhk_type: normalizedBhkType,
+      address_text: body.address_text,
+      locality: body.locality,
+      city: body.city,
+      state: body.state || null,
+      pincode: body.pincode,
+      latitude,
+      longitude,
+      built_up_area: body.built_up_area,
+      carpet_area: body.carpet_area,
+      total_floors: body.total_floors,
+      floor_number: body.floor_number,
+      bedrooms: body.bedrooms || null,
+      bathrooms: body.bathrooms || null,
+      balconies: body.balconies || 0,
+      property_age: body.property_age || '1-3',
+      furnishing: body.furnishing,
+      facing: body.facing || null,
+      expected_price: body.expected_price,
+      price_negotiable: body.price_negotiable || false,
+      maintenance_charges: body.maintenance_charges || null,
+      security_deposit: body.security_deposit || null,
+      description: body.description || null,
+      available_from: body.available_from || null,
+      secondary_phone_number: secondaryPhoneNumber,
+    };
+  }
+
   static async createProperty(req, res) {
     try {
       const ownerId = req.user.user_id;
@@ -306,6 +405,93 @@ class PropertyController {
       return res.status(500).json({
         success: false,
         message: 'Failed to create property',
+      });
+    }
+  }
+
+  static async createPhantomProperty(req, res) {
+    try {
+      const adminUserId = req.user?.user_id;
+      if (!adminUserId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+
+      const isAdmin = await AdminUser.isActiveAdmin(adminUserId);
+      if (!isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only active admins can create phantom properties',
+        });
+      }
+
+      const hasVerifiedPrimaryPhone = await ensureAdminWithVerifiedPrimaryPhone(adminUserId);
+      if (!hasVerifiedPrimaryPhone) {
+        return res.status(403).json({
+          success: false,
+          message: 'Admin primary phone must be OTP-verified before creating phantom properties',
+        });
+      }
+
+      const body = req.body || {};
+      const ownerName = String(body.owner_name || '').trim();
+      const ownerPhoneE164 = normalizeIndianPhoneToE164(body.owner_phone_number);
+
+      if (!ownerName) {
+        return res.status(400).json({
+          success: false,
+          message: 'owner_name is required',
+        });
+      }
+      if (!ownerPhoneE164) {
+        return res.status(400).json({
+          success: false,
+          message: 'owner_phone_number is required',
+        });
+      }
+
+      const ownerProfileId = await Property.createOrUpdatePhantomOwnerProfile({
+        owner_name: ownerName,
+        owner_phone_number: ownerPhoneE164,
+        created_by_user_id: adminUserId,
+      });
+
+      const propertyData = PropertyController.buildPropertyDataFromBody(body, null);
+      propertyData.owner_profile_id = ownerProfileId;
+      propertyData.ownership_mode = 'phantom_owner';
+      propertyData.chat_owner_user_id = adminUserId;
+
+      const propertyId = await Property.create(propertyData);
+
+      if (body.amenities && Array.isArray(body.amenities) && body.amenities.length > 0) {
+        await Property.addAmenities(propertyId, body.amenities);
+      }
+      if (body.image_urls && Array.isArray(body.image_urls) && body.image_urls.length > 0) {
+        await Property.addImages(propertyId, body.image_urls);
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: 'Phantom property created successfully',
+        data: {
+          property_id: propertyId,
+          owner_profile_id: ownerProfileId,
+          ownership_mode: 'phantom_owner',
+        },
+      });
+    } catch (error) {
+      console.error('Create phantom property error:', error);
+      if (
+        error?.message?.includes('Missing required field') ||
+        error?.message?.includes('Invalid') ||
+        error?.message?.includes('Latitude') ||
+        error?.message?.includes('longitude') ||
+        error?.message?.includes('bhk_type')
+      ) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create phantom property',
       });
     }
   }
@@ -622,6 +808,108 @@ class PropertyController {
       return res.status(500).json({
         success: false,
         message: 'Failed to update property',
+      });
+    }
+  }
+
+  static async updatePhantomProperty(req, res) {
+    try {
+      const propertyId = req.params.id;
+      const adminUserId = req.user?.user_id;
+      if (!adminUserId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+
+      const isAdmin = await AdminUser.isActiveAdmin(adminUserId);
+      if (!isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only active admins can update phantom properties',
+        });
+      }
+
+      const hasVerifiedPrimaryPhone = await ensureAdminWithVerifiedPrimaryPhone(adminUserId);
+      if (!hasVerifiedPrimaryPhone) {
+        return res.status(403).json({
+          success: false,
+          message: 'Admin primary phone must be OTP-verified before updating phantom properties',
+        });
+      }
+
+      const ownershipMeta = await Property.getPropertyOwnershipMeta(propertyId);
+      if (!ownershipMeta) {
+        return res.status(404).json({
+          success: false,
+          message: 'Property not found',
+        });
+      }
+      if (ownershipMeta.ownership_mode !== 'phantom_owner' || !ownershipMeta.owner_profile_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Only phantom owner properties can be updated via this endpoint',
+        });
+      }
+
+      const body = req.body || {};
+      const ownerName = String(body.owner_name || '').trim();
+      const ownerPhoneE164 = normalizeIndianPhoneToE164(body.owner_phone_number);
+      if (!ownerName || !ownerPhoneE164) {
+        return res.status(400).json({
+          success: false,
+          message: 'owner_name and owner_phone_number are required',
+        });
+      }
+
+      const ownerProfileId = await Property.createOrUpdatePhantomOwnerProfile({
+        owner_name: ownerName,
+        owner_phone_number: ownerPhoneE164,
+        created_by_user_id: adminUserId,
+      });
+
+      const updateData = PropertyController.buildPropertyDataFromBody(body, null);
+      updateData.owner_profile_id = ownerProfileId;
+      updateData.ownership_mode = 'phantom_owner';
+      updateData.chat_owner_user_id = adminUserId;
+      if (body.amenities && Array.isArray(body.amenities)) {
+        updateData.amenities = body.amenities;
+      }
+      if (body.image_urls && Array.isArray(body.image_urls)) {
+        updateData.image_urls = body.image_urls;
+      }
+
+      const affectedRows = await Property.update(propertyId, adminUserId, updateData, {
+        allowCrossOwnerEdit: true,
+      });
+      if (affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Property not found',
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Phantom property updated successfully',
+        data: {
+          property_id: Number(propertyId),
+          owner_profile_id: ownerProfileId,
+          ownership_mode: 'phantom_owner',
+        },
+      });
+    } catch (error) {
+      console.error('Update phantom property error:', error);
+      if (
+        error?.message?.includes('Missing required field') ||
+        error?.message?.includes('Invalid') ||
+        error?.message?.includes('Latitude') ||
+        error?.message?.includes('longitude') ||
+        error?.message?.includes('bhk_type')
+      ) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update phantom property',
       });
     }
   }

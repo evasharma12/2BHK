@@ -1,6 +1,73 @@
 const db = require('../storage/dbConnection');
 
 const Property = {
+  async createOrUpdatePhantomOwnerProfile(ownerData) {
+    return new Promise((resolve, reject) => {
+      const {
+        owner_name,
+        owner_phone_number,
+        created_by_user_id,
+      } = ownerData;
+
+      const lookupSql = `
+        SELECT owner_profile_id
+        FROM phantom_property_owner_profiles
+        WHERE owner_phone_number = ?
+        LIMIT 1
+      `;
+
+      db.query(lookupSql, [owner_phone_number], (lookupErr, rows) => {
+        if (lookupErr) return reject(lookupErr);
+
+        if (rows && rows.length > 0) {
+          const ownerProfileId = rows[0].owner_profile_id;
+          const updateSql = `
+            UPDATE phantom_property_owner_profiles
+            SET owner_name = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE owner_profile_id = ?
+          `;
+          return db.query(updateSql, [owner_name, ownerProfileId], (updateErr) => {
+            if (updateErr) return reject(updateErr);
+            return resolve(ownerProfileId);
+          });
+        }
+
+        const insertSql = `
+          INSERT INTO phantom_property_owner_profiles (
+            owner_name,
+            owner_phone_number,
+            source,
+            created_by_user_id
+          )
+          VALUES (?, ?, 'manual_admin', ?)
+        `;
+        return db.query(
+          insertSql,
+          [owner_name, owner_phone_number, created_by_user_id],
+          (insertErr, result) => {
+            if (insertErr) return reject(insertErr);
+            return resolve(result.insertId);
+          }
+        );
+      });
+    });
+  },
+
+  async getPropertyOwnershipMeta(propertyId) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT property_id, owner_id, owner_profile_id, ownership_mode
+        FROM properties
+        WHERE property_id = ?
+        LIMIT 1
+      `;
+      db.query(sql, [propertyId], (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows && rows.length ? rows[0] : null);
+      });
+    });
+  },
+
   // Create a new property
   async create(propertyData) {
     return new Promise((resolve, reject) => {
@@ -32,10 +99,13 @@ const Property = {
           security_deposit,
           description,
           available_from,
-          secondary_phone_number
+          secondary_phone_number,
+          owner_profile_id,
+          ownership_mode,
+          chat_owner_user_id
         )
         VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_SRID(POINT(?, ?), 4326), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_SRID(POINT(?, ?), 4326), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
       `;
 
@@ -68,6 +138,9 @@ const Property = {
         description,
         available_from,
         secondary_phone_number,
+        owner_profile_id,
+        ownership_mode,
+        chat_owner_user_id,
       } = propertyData;
 
       db.query(
@@ -101,6 +174,9 @@ const Property = {
           description || null,
           available_from || null,
           secondary_phone_number || null,
+          owner_profile_id || null,
+          ownership_mode || 'registered_owner',
+          chat_owner_user_id || null,
         ],
         (err, result) => {
           if (err) return reject(err);
@@ -445,6 +521,7 @@ const Property = {
       'built_up_area', 'carpet_area', 'total_floors', 'floor_number', 'bedrooms', 'bathrooms', 'balconies',
       'property_age', 'furnishing', 'facing', 'expected_price', 'price_negotiable', 'maintenance_charges',
       'security_deposit', 'description', 'available_from', 'secondary_phone_number',
+      'owner_profile_id', 'ownership_mode', 'chat_owner_user_id',
     ];
     const setParts = [];
     const values = [];
