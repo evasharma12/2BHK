@@ -14,6 +14,7 @@ router.get('/my-listings', authMiddleware, PropertyController.getMyListings);
 // Admin phantom listing create/update (auth + admin checks inside controller; must be before /:id)
 router.post('/admin/phantom', authMiddleware, PropertyController.createPhantomProperty);
 router.put('/admin/phantom/:id', authMiddleware, PropertyController.updatePhantomProperty);
+router.post('/admin/phantom/claim-by-phone', authMiddleware, PropertyController.claimPhantomPropertiesByPhone);
 
 // Get single property by id
 router.get('/:id', PropertyController.getPropertyById);

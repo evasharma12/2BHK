@@ -913,6 +913,86 @@ class PropertyController {
       });
     }
   }
+
+  static async claimPhantomPropertiesByPhone(req, res) {
+    try {
+      const adminUserId = req.user?.user_id;
+      if (!adminUserId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+
+      const isAdmin = await AdminUser.isActiveAdmin(adminUserId);
+      if (!isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only active admins can claim phantom properties',
+        });
+      }
+
+      const body = req.body || {};
+      const claimedUserId = Number(body.claimed_user_id);
+      if (!Number.isInteger(claimedUserId) || claimedUserId <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'claimed_user_id is required and must be a valid user id',
+        });
+      }
+
+      let ownerPhoneE164 = String(body.owner_phone_number || '').trim();
+      if (ownerPhoneE164) {
+        ownerPhoneE164 = normalizeIndianPhoneToE164(ownerPhoneE164);
+      } else {
+        ownerPhoneE164 = await Property.getVerifiedPrimaryPhoneE164ForUser(claimedUserId);
+      }
+      if (!ownerPhoneE164) {
+        return res.status(400).json({
+          success: false,
+          message: 'A verified primary phone is required for the claimed user (or provide owner_phone_number)',
+        });
+      }
+
+      let propertyIds = null;
+      if (Array.isArray(body.property_ids)) {
+        propertyIds = body.property_ids
+          .map((id) => Number(id))
+          .filter((id) => Number.isInteger(id) && id > 0);
+        if (propertyIds.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'property_ids must contain valid property ids when provided',
+          });
+        }
+      }
+
+      const claimResult = await Property.claimPhantomPropertiesByPhone({
+        claimed_user_id: claimedUserId,
+        owner_phone_e164: ownerPhoneE164,
+        claimed_by_admin_id: adminUserId,
+        switch_chat_owner: body.switch_chat_owner === true,
+        property_ids: propertyIds,
+      });
+
+      return res.json({
+        success: true,
+        message: claimResult.claimed_count > 0
+          ? 'Phantom ownership claim completed'
+          : 'No matching phantom properties found for claim',
+        data: {
+          claimed_count: claimResult.claimed_count,
+          claimed_property_ids: claimResult.claimed_property_ids,
+          claimed_user_id: claimedUserId,
+          matched_phone_number: ownerPhoneE164,
+          switch_chat_owner: body.switch_chat_owner === true,
+        },
+      });
+    } catch (error) {
+      console.error('Claim phantom properties error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to claim phantom properties',
+      });
+    }
+  }
 }
 
 module.exports = PropertyController;

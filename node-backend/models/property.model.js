@@ -1,6 +1,180 @@
 const db = require('../storage/dbConnection');
 
 const Property = {
+  normalizeToE164India(phone) {
+    const digits = String(phone || '').trim().replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.length === 10) return `+91${digits}`;
+    if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+    return '';
+  },
+
+  async getVerifiedPrimaryPhoneE164ForUser(userId) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT phone_number
+        FROM user_phones
+        WHERE user_id = ? AND is_primary = 1 AND is_verified = 1
+        LIMIT 1
+      `;
+      db.query(sql, [userId], (err, rows) => {
+        if (err) return reject(err);
+        const phone = rows && rows.length ? rows[0].phone_number : '';
+        resolve(this.normalizeToE164India(phone));
+      });
+    });
+  },
+
+  async claimPhantomPropertiesByPhone(claimData) {
+    return new Promise((resolve, reject) => {
+      const {
+        claimed_user_id,
+        owner_phone_e164,
+        claimed_by_admin_id = null,
+        switch_chat_owner = false,
+        property_ids = null,
+      } = claimData;
+
+      db.getConnection((connErr, conn) => {
+        if (connErr) return reject(connErr);
+
+        conn.beginTransaction((txErr) => {
+          if (txErr) {
+            conn.release();
+            return reject(txErr);
+          }
+
+          const selectValues = [owner_phone_e164];
+          let propertyScopeSql = '';
+          if (Array.isArray(property_ids) && property_ids.length > 0) {
+            propertyScopeSql = ` AND p.property_id IN (${property_ids.map(() => '?').join(',')}) `;
+            selectValues.push(...property_ids);
+          }
+
+          const selectSql = `
+            SELECT p.property_id, p.owner_profile_id
+            FROM properties p
+            INNER JOIN phantom_property_owner_profiles pop
+              ON pop.owner_profile_id = p.owner_profile_id
+            WHERE p.ownership_mode = 'phantom_owner'
+              AND p.owner_profile_id IS NOT NULL
+              AND pop.owner_phone_number = ?
+              ${propertyScopeSql}
+            FOR UPDATE
+          `;
+
+          conn.query(selectSql, selectValues, (selectErr, rows) => {
+            if (selectErr) {
+              return conn.rollback(() => {
+                conn.release();
+                reject(selectErr);
+              });
+            }
+
+            if (!rows || rows.length === 0) {
+              return conn.rollback(() => {
+                conn.release();
+                resolve({
+                  claimed_count: 0,
+                  claimed_property_ids: [],
+                });
+              });
+            }
+
+            const propertyIds = rows.map((r) => r.property_id);
+            const ownerProfileByProperty = new Map(rows.map((r) => [r.property_id, r.owner_profile_id]));
+
+            const updateSql = switch_chat_owner
+              ? `
+                UPDATE properties
+                SET
+                  owner_id = ?,
+                  ownership_mode = 'registered_owner',
+                  chat_owner_user_id = ?,
+                  updated_at = CURRENT_TIMESTAMP
+                WHERE property_id IN (${propertyIds.map(() => '?').join(',')})
+                  AND ownership_mode = 'phantom_owner'
+              `
+              : `
+                UPDATE properties
+                SET
+                  owner_id = ?,
+                  ownership_mode = 'registered_owner',
+                  updated_at = CURRENT_TIMESTAMP
+                WHERE property_id IN (${propertyIds.map(() => '?').join(',')})
+                  AND ownership_mode = 'phantom_owner'
+              `;
+
+            const updateValues = switch_chat_owner
+              ? [claimed_user_id, claimed_user_id, ...propertyIds]
+              : [claimed_user_id, ...propertyIds];
+
+            conn.query(updateSql, updateValues, (updateErr, updateResult) => {
+              if (updateErr) {
+                return conn.rollback(() => {
+                  conn.release();
+                  reject(updateErr);
+                });
+              }
+
+              const claimedPropertyIds = propertyIds.slice(0, updateResult.affectedRows || 0);
+              if (!claimedPropertyIds.length) {
+                return conn.rollback(() => {
+                  conn.release();
+                  resolve({
+                    claimed_count: 0,
+                    claimed_property_ids: [],
+                  });
+                });
+              }
+
+              const claimRows = claimedPropertyIds.map((propertyId) => [
+                propertyId,
+                ownerProfileByProperty.get(propertyId),
+                claimed_user_id,
+                claimed_by_admin_id,
+              ]);
+
+              const insertAuditSql = `
+                INSERT INTO property_owner_claims (
+                  property_id,
+                  owner_profile_id,
+                  claimed_user_id,
+                  claimed_by_admin_id
+                )
+                VALUES ?
+              `;
+
+              conn.query(insertAuditSql, [claimRows], (auditErr) => {
+                if (auditErr) {
+                  return conn.rollback(() => {
+                    conn.release();
+                    reject(auditErr);
+                  });
+                }
+
+                conn.commit((commitErr) => {
+                  if (commitErr) {
+                    return conn.rollback(() => {
+                      conn.release();
+                      reject(commitErr);
+                    });
+                  }
+
+                  conn.release();
+                  return resolve({
+                    claimed_count: claimedPropertyIds.length,
+                    claimed_property_ids: claimedPropertyIds,
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  },
+
   async createOrUpdatePhantomOwnerProfile(ownerData) {
     return new Promise((resolve, reject) => {
       const {
