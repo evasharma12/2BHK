@@ -280,6 +280,9 @@ const Property = {
         SELECT 
           p.property_id,
           p.owner_id,
+          p.owner_profile_id,
+          p.ownership_mode,
+          p.chat_owner_user_id,
           p.property_for,
           p.property_type,
           p.bhk_type,
@@ -297,8 +300,19 @@ const Property = {
           COALESCE(p.is_rented_out, 0) AS is_rented_out,
           p.rented_out_by,
           p.created_at,
+          CASE
+            WHEN p.ownership_mode = 'phantom_owner' THEN pop.owner_name
+            ELSE u.full_name
+          END AS display_owner_name,
+          CASE
+            WHEN p.ownership_mode = 'phantom_owner' THEN pop.owner_phone_number
+            ELSE up.phone_number
+          END AS display_owner_phone,
           (SELECT pi.image_url FROM property_images pi WHERE pi.property_id = p.property_id ORDER BY pi.image_order ASC, pi.image_id ASC LIMIT 1) AS cover_image
         FROM properties p
+        LEFT JOIN users u ON p.owner_id = u.user_id
+        LEFT JOIN phantom_property_owner_profiles pop ON p.owner_profile_id = pop.owner_profile_id
+        LEFT JOIN user_phones up ON up.user_id = p.owner_id AND up.is_primary = 1
         WHERE ${whereClause}
         ORDER BY ${rentalBucketSort}, ${sort}
       `;
@@ -427,6 +441,10 @@ const Property = {
       const sql = `
         SELECT 
           p.property_id,
+          p.owner_id,
+          p.owner_profile_id,
+          p.ownership_mode,
+          p.chat_owner_user_id,
           p.property_for,
           p.property_type,
           p.bhk_type,
@@ -438,8 +456,19 @@ const Property = {
           p.status,
           COALESCE(p.is_rented_out, 0) AS is_rented_out,
           p.rented_out_by,
-          p.created_at
+          p.created_at,
+          CASE
+            WHEN p.ownership_mode = 'phantom_owner' THEN pop.owner_name
+            ELSE u.full_name
+          END AS display_owner_name,
+          CASE
+            WHEN p.ownership_mode = 'phantom_owner' THEN pop.owner_phone_number
+            ELSE up.phone_number
+          END AS display_owner_phone
         FROM properties p
+        LEFT JOIN users u ON p.owner_id = u.user_id
+        LEFT JOIN phantom_property_owner_profiles pop ON p.owner_profile_id = pop.owner_profile_id
+        LEFT JOIN user_phones up ON up.user_id = p.owner_id AND up.is_primary = 1
         WHERE p.owner_id = ?
         ORDER BY p.created_at DESC
       `;
@@ -607,9 +636,19 @@ const Property = {
           ST_Y(p.location) AS lat,
           ST_X(p.location) AS lng,
           u.full_name AS owner_name,
-          u.email AS owner_email
+          u.email AS owner_email,
+          CASE
+            WHEN p.ownership_mode = 'phantom_owner' THEN pop.owner_name
+            ELSE u.full_name
+          END AS display_owner_name,
+          CASE
+            WHEN p.ownership_mode = 'phantom_owner' THEN pop.owner_phone_number
+            ELSE up.phone_number
+          END AS display_owner_phone
         FROM properties p
         LEFT JOIN users u ON p.owner_id = u.user_id
+        LEFT JOIN phantom_property_owner_profiles pop ON p.owner_profile_id = pop.owner_profile_id
+        LEFT JOIN user_phones up ON up.user_id = p.owner_id AND up.is_primary = 1
         WHERE p.property_id = ?
           AND (
             p.status = 'active'
@@ -647,22 +686,10 @@ const Property = {
       });
     });
 
-    const ownerPhone = await new Promise(function (resolve, reject) {
-      function onPhoneResult(err, rows) {
-        if (err) return reject(err);
-        resolve(rows.length ? rows[0].phone_number : null);
-      }
-      db.query(
-        'SELECT phone_number FROM user_phones WHERE user_id = ? AND is_primary = 1 LIMIT 1',
-        [property.owner_id],
-        onPhoneResult
-      );
-    });
-
     return Object.assign({}, property, {
       images: images,
       amenities: amenities,
-      owner_phone: ownerPhone
+      owner_phone: property.display_owner_phone
     });
   }
 };
