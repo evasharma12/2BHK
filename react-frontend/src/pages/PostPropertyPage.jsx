@@ -88,7 +88,7 @@ const PostPropertyPage = () => {
           {isVerified ? <div className="phone-gate-success">Verified. Opening form...</div> : null}
         </div>
       ) : (
-        <PostProperty />
+        <PostProperty user={user} />
       )}
     </div>
   );

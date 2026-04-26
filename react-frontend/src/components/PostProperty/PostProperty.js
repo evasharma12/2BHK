@@ -38,9 +38,12 @@ const defaultFormData = {
   description: '',
   availableFrom: '',
   secondaryPhoneNumber: '',
+  postForSomeoneElse: false,
+  ownerName: '',
+  ownerPhoneNumber: '',
 };
 
-const PostProperty = ({ propertyId = null, initialFormData = null }) => {
+const PostProperty = ({ propertyId = null, initialFormData = null, user = null }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const isEditMode = Boolean(propertyId);
@@ -54,6 +57,13 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
   );
 
   const totalSteps = 6;
+  const activeUser = user || api.getUser() || {};
+  const canPostForOthers = Boolean(
+    activeUser?.is_admin ||
+      activeUser?.isAdmin ||
+      activeUser?.role === 'admin' ||
+      activeUser?.user_role === 'admin'
+  );
 
   useEffect(() => {
     if (isEditMode) return;
@@ -226,13 +236,31 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
         image_urls: imageUrls,
       };
 
+      const wantsPhantomPost = !isEditMode && canPostForOthers && Boolean(formData.postForSomeoneElse);
+      if (wantsPhantomPost) {
+        const ownerName = String(formData.ownerName || '').trim();
+        const ownerPhoneNumber = String(formData.ownerPhoneNumber || '').trim();
+        if (!ownerName) {
+          throw new Error('Owner name is required when posting for someone else.');
+        }
+        if (!ownerPhoneNumber) {
+          throw new Error('Owner phone number is required when posting for someone else.');
+        }
+        payload.owner_name = ownerName;
+        payload.owner_phone_number = ownerPhoneNumber;
+      }
+
       if (isEditMode) {
         await api.updateProperty(propertyId, payload);
         localStorage.removeItem(draftStorageKey);
         showToast('Property updated successfully!');
         navigate(`/properties/${propertyId}`);
       } else {
-        await api.createProperty(payload);
+        if (!canPostForOthers || !formData.postForSomeoneElse) {
+          await api.createProperty(payload);
+        } else {
+          await api.createPhantomProperty(payload);
+        }
         localStorage.removeItem(draftStorageKey);
         showToast('Your property has been posted successfully.');
         navigate('/properties');
@@ -296,6 +324,8 @@ const PostProperty = ({ propertyId = null, initialFormData = null }) => {
           <OwnerContact
             formData={formData}
             updateFormData={updateFormData}
+            canPostForOthers={canPostForOthers}
+            isEditMode={isEditMode}
           />
         );
       default:

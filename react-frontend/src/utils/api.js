@@ -152,6 +152,28 @@ export const api = {
     return data;
   },
 
+  async createPhantomProperty(propertyData) {
+    const token = this.getAuthToken();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/properties/admin/phantom`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(propertyData),
+      });
+    } catch (err) {
+      throw handleFetchError(err, 'create phantom property');
+    }
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to create phantom property');
+    }
+    return data;
+  },
+
   async getProperties(params = {}) {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {

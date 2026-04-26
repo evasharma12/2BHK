@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const OwnerContact = ({ formData, updateFormData }) => {
+const OwnerContact = ({ formData, updateFormData, canPostForOthers = false, isEditMode = false }) => {
   return (
     <div className="form-section">
       <div className="contact-info">
@@ -42,6 +42,61 @@ const OwnerContact = ({ formData, updateFormData }) => {
           maxLength={15}
         />
       </div>
+
+      {canPostForOthers && !isEditMode ? (
+        <>
+          <div className="form-field form-field--full">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                className="checkbox-input"
+                checked={Boolean(formData.postForSomeoneElse)}
+                onChange={(e) => updateFormData('postForSomeoneElse', e.target.checked)}
+              />
+              <span className="checkbox-text">
+                Post this listing for someone else (Admin only)
+              </span>
+            </label>
+          </div>
+
+          {formData.postForSomeoneElse ? (
+            <>
+              <div className="form-field form-field--full">
+                <label htmlFor="ownerName" className="field-label">
+                  Owner Name*
+                </label>
+                <input
+                  type="text"
+                  id="ownerName"
+                  className="field-input"
+                  value={formData.ownerName || ''}
+                  onChange={(e) => updateFormData('ownerName', e.target.value)}
+                  placeholder="Enter owner full name"
+                  required={Boolean(formData.postForSomeoneElse)}
+                />
+              </div>
+
+              <div className="form-field form-field--full">
+                <label htmlFor="ownerPhoneNumber" className="field-label">
+                  Owner Phone Number*
+                </label>
+                <input
+                  type="tel"
+                  id="ownerPhoneNumber"
+                  className="field-input"
+                  value={formData.ownerPhoneNumber || ''}
+                  onChange={(e) =>
+                    updateFormData('ownerPhoneNumber', e.target.value.replace(/[^\d+]/g, '').slice(0, 15))
+                  }
+                  placeholder="e.g. +919876543210"
+                  inputMode="tel"
+                  required={Boolean(formData.postForSomeoneElse)}
+                />
+              </div>
+            </>
+          ) : null}
+        </>
+      ) : null}
 
       {/* Terms and Conditions */}
       <div className="terms-section">
