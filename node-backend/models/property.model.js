@@ -359,6 +359,9 @@ const Property = {
           ST_Y(p.location) AS lat,
           ST_X(p.location) AS lng,
           p.expected_price,
+          p.status,
+          COALESCE(p.is_rented_out, 0) AS is_rented_out,
+          p.rented_out_by,
           p.created_at
         FROM properties p
         WHERE p.owner_id = ?

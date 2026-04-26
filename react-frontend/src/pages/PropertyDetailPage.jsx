@@ -93,12 +93,24 @@ const PropertyDetailPage = () => {
         p.owner_secondary_phone ||
         p.secondaryPhoneNumber ||
         '',
+      status: p.status || 'active',
+      isRentedOut: Number(p.is_rented_out || 0) === 1,
+      rentedOutBy: p.rented_out_by || '',
       images: p.images || [],
       amenities: p.amenities || [],
       lat: normalizedCoords.lat,
       lng: normalizedCoords.lng,
     };
   };
+
+  const isClosedProperty =
+    property &&
+    (property.status === 'inactive' ||
+      property.status === 'rented' ||
+      property.status === 'sold' ||
+      property.isRentedOut);
+  const closedPropertyLabel = property?.propertyFor === 'rent' ? 'Rented Out' : 'Sold Out';
+  const closedWatermarkLabel = property?.propertyFor === 'rent' ? 'RENTED OUT' : 'SOLD OUT';
 
   const fetchProperty = async (propertyId) => {
     if (!propertyId) return;
@@ -299,6 +311,11 @@ const PropertyDetailPage = () => {
           <div className="property-badge">
             {property.propertyFor === 'rent' ? 'For Rent' : 'For Sale'}
           </div>
+          {isClosedProperty && (
+            <div className="property-badge property-badge--closed">
+              {closedPropertyLabel}
+            </div>
+          )}
         </div>
 
         {/* Property Header */}
@@ -614,6 +631,11 @@ const PropertyDetailPage = () => {
       >
         Contact Owner
       </button>
+      {isClosedProperty && (
+        <div className="property-closed-watermark" aria-hidden="true">
+          {closedWatermarkLabel}
+        </div>
+      )}
     </div>
   );
 };

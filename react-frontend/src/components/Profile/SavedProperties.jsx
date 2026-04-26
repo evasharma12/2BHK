@@ -4,6 +4,14 @@ import './ProfileTabContent.css';
 
 const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
+const isPropertyClosed = (property) => {
+  const status = String(property?.status || '').toLowerCase();
+  const rentedOutFlag = Number(property?.is_rented_out || 0) === 1;
+  const rentedOutBy = !!property?.rented_out_by;
+  const hasDeletedAt = !!property?.deleted_at;
+  return status === 'inactive' || status === 'rented' || status === 'sold' || rentedOutFlag || rentedOutBy || hasDeletedAt;
+};
+
 const SavedProperties = ({ userId }) => {
   const [properties, setProperties] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,11 +128,18 @@ const ListedPropertyMiniCard = ({ property, onDelete }) => {
     e.stopPropagation();
   };
 
+  const isClosedListing = property?.isClosedListing === true || isPropertyClosed(property);
+  const closedLabel = property?.property_for === 'rent' ? 'Rented' : 'Sold';
+
   return (
-    <Link to={`/properties/${property.property_id}`} className="listed-mini-card">
+    <Link
+      to={`/properties/${property.property_id}`}
+      className={`listed-mini-card ${isClosedListing ? 'listed-mini-card--closed' : ''}`}
+    >
       <span className="listed-mini-card__badge">
         {property.property_for === 'rent' ? 'Rent' : 'Sale'}
       </span>
+      {isClosedListing && <span className="listed-mini-card__closed-tag">{closedLabel}</span>}
       <div className="listed-mini-card__body">
         <h3 className="listed-mini-card__title">
           {property.bhk_type} BHK · {property.locality}
@@ -135,24 +150,28 @@ const ListedPropertyMiniCard = ({ property, onDelete }) => {
         </p>
       </div>
       <span className="listed-mini-card__arrow">→</span>
-      <Link
-        to={`/properties/${property.property_id}/edit`}
-        className="listed-mini-card__edit-btn"
-        onClick={handleEditClick}
-        title="Edit listing"
-        aria-label="Edit listing"
-      >
-        Edit
-      </Link>
-      <button
-        type="button"
-        className="listed-mini-card__delete-btn"
-        onClick={handleDeleteClick}
-        title="Delete listing"
-        aria-label="Delete listing"
-      >
-        <TrashIcon />
-      </button>
+      {!isClosedListing && (
+        <>
+          <Link
+            to={`/properties/${property.property_id}/edit`}
+            className="listed-mini-card__edit-btn"
+            onClick={handleEditClick}
+            title="Edit listing"
+            aria-label="Edit listing"
+          >
+            Edit
+          </Link>
+          <button
+            type="button"
+            className="listed-mini-card__delete-btn"
+            onClick={handleDeleteClick}
+            title="Delete listing"
+            aria-label="Delete listing"
+          >
+            <TrashIcon />
+          </button>
+        </>
+      )}
     </Link>
   );
 };
@@ -176,7 +195,45 @@ export const MyListings = ({ userId }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.success) setProperties(data.data);
+      if (data.success) {
+        const listings = data.data || [];
+        const needsDetailFallback = listings.some((p) => {
+          const hasStatus = p?.status !== undefined && p?.status !== null;
+          const hasRentedOutFlag = p?.is_rented_out !== undefined && p?.is_rented_out !== null;
+          return !hasStatus && !hasRentedOutFlag;
+        });
+
+        let enrichedListings = listings;
+        if (needsDetailFallback) {
+          const detailResponses = await Promise.all(
+            listings.map(async (p) => {
+              try {
+                const detailRes = await fetch(`${API_URL}/api/properties/${p.property_id}`, {
+                  headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                });
+                const detailData = await detailRes.json();
+                const detail = detailData?.data || {};
+                return {
+                  ...p,
+                  status: p?.status ?? detail?.status,
+                  is_rented_out: p?.is_rented_out ?? detail?.is_rented_out,
+                  rented_out_by: p?.rented_out_by ?? detail?.rented_out_by,
+                  deleted_at: p?.deleted_at ?? detail?.deleted_at,
+                };
+              } catch (_) {
+                return p;
+              }
+            })
+          );
+          enrichedListings = detailResponses;
+        }
+
+        const normalizedListings = enrichedListings.map((p) => ({
+          ...p,
+          isClosedListing: isPropertyClosed(p),
+        }));
+        setProperties(normalizedListings);
+      }
     } catch (err) {
       console.error('Failed to fetch listings:', err);
     } finally {
@@ -204,7 +261,17 @@ export const MyListings = ({ userId }) => {
       const data = await res.json();
       if (data.success) {
         setProperties((prev) =>
-          prev.filter((p) => p.property_id !== deletePromptProperty.property_id)
+          prev.map((p) =>
+            p.property_id === deletePromptProperty.property_id
+              ? {
+                  ...p,
+                  status: 'inactive',
+                  is_rented_out: 1,
+                  rented_out_by: rentedViaHimHomes ? 'himhomes' : 'other',
+                  isClosedListing: true,
+                }
+              : p
+          )
         );
         setDeletePromptProperty(null);
         window.alert('Property removed successfully');

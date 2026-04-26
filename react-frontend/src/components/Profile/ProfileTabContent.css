@@ -71,9 +71,32 @@
     transition: box-shadow 0.2s, border-color 0.2s;
   }
 
+  .listed-mini-card--closed {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    opacity: 0.92;
+  }
+
+  .listed-mini-card--closed .listed-mini-card__title,
+  .listed-mini-card--closed .listed-mini-card__city,
+  .listed-mini-card--closed .listed-mini-card__price,
+  .listed-mini-card--closed .listed-mini-card__arrow {
+    color: #64748b;
+  }
+
+  .listed-mini-card--closed .listed-mini-card__edit-btn,
+  .listed-mini-card--closed .listed-mini-card__delete-btn {
+    display: none !important;
+  }
+
   .listed-mini-card:hover {
     border-color: #cbd5e1;
     box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .listed-mini-card--closed:hover {
+    border-color: #cbd5e1;
+    box-shadow: none;
   }
 
   .listed-mini-card__badge {
@@ -87,6 +110,19 @@
     letter-spacing: 0.5px;
     padding: 0.3rem 0.6rem;
     border-radius: 6px;
+  }
+
+  .listed-mini-card__closed-tag {
+    flex-shrink: 0;
+    background: #334155;
+    color: #ffffff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
   }
 
   .listed-mini-card__body {
