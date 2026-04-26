@@ -250,6 +250,7 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
             onChange={(e) => setDraft((d) => ({ ...d, bhk: e.target.value }))}
           >
             <option value="">All BHK</option>
+            <option value="1rk">1 RK</option>
             <option value="1">1 BHK</option>
             <option value="1.5">1.5 BHK</option>
             <option value="2">2 BHK</option>
@@ -315,6 +316,8 @@ const PropertyFilters = ({ filters, onFilterChange, onClearFilters, totalCount }
             <option value="builder-floor">Builder Floor</option>
             <option value="studio">Studio</option>
             <option value="penthouse">Penthouse</option>
+            <option value="commercial">Commercial Space</option>
+            <option value="pg">PG</option>
           </select>
         </div>
 

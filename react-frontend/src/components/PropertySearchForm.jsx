@@ -282,6 +282,7 @@ const PropertySearchForm = () => {
                 onChange={(e) => handleFilterChange('bhk', e.target.value)}
               >
                 <option value="">Select BHK</option>
+                <option value="1rk">1 RK</option>
                 <option value="1">1 BHK</option>
                 <option value="1.5">1.5 BHK</option>
                 <option value="2">2 BHK</option>
@@ -314,6 +315,8 @@ const PropertySearchForm = () => {
                 <option value="builder-floor">Builder Floor</option>
                 <option value="studio">Studio Apartment</option>
                 <option value="penthouse">Penthouse</option>
+                <option value="commercial">Commercial Space</option>
+                <option value="pg">PG</option>
               </select>
             </div>
 

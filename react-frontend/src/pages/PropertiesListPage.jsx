@@ -125,6 +125,11 @@ const PropertiesListPage = () => {
     return () => { cancelled = true; };
   }, [apiParams]);
 
+  const getBhkLabel = (bhkValue) => {
+    if (!bhkValue) return 'Property';
+    return String(bhkValue).toLowerCase() === '1rk' ? '1 RK' : `${bhkValue} BHK`;
+  };
+
   const handleFilterChange = (newFilters) => {
     const next = new URLSearchParams(searchParams);
     const map = {
@@ -323,7 +328,7 @@ const PropertiesListPage = () => {
     const nextMarkers = mapRenderProperties.map((property) => {
       const marker = new googleMaps.maps.Marker({
         position: { lat: property.lat, lng: property.lng },
-        title: `${property.bhk} BHK ${property.propertyType || 'Property'}`,
+        title: `${getBhkLabel(property.bhk)} ${property.propertyType || 'Property'}`,
         icon: {
           path: googleMaps.maps.SymbolPath.CIRCLE,
           scale: emphasizeMarkers ? 8 : 5,
@@ -476,7 +481,7 @@ const PropertiesListPage = () => {
                       )}
                       {selectedMapProperty && (
                         <div className="properties-map-preview">
-                          <h4>{selectedMapProperty.bhk} BHK {selectedMapProperty.propertyType || 'Property'}</h4>
+                          <h4>{getBhkLabel(selectedMapProperty.bhk)} {selectedMapProperty.propertyType || 'Property'}</h4>
                           <p>{selectedMapProperty.locality}, {selectedMapProperty.city}</p>
                           <p className="properties-map-preview-price">INR {Number(selectedMapProperty.expectedPrice || 0).toLocaleString('en-IN')}</p>
                           <a href={`/properties/${selectedMapProperty.id}`}>View details</a>

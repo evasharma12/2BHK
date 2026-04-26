@@ -37,6 +37,18 @@ const PropertyBasicInfo = ({
   }, [formData.latitude, formData.longitude]);
 
   useEffect(() => {
+    // PG listings are always a single-room 1RK setup.
+    if (formData.propertyType === 'pg' && formData.bhk !== '1rk') {
+      updateFormData('bhk', '1rk');
+      return;
+    }
+    // When switching away from PG, clear auto-selected 1RK to avoid invalid carry-over.
+    if (formData.propertyType !== 'pg' && formData.bhk === '1rk') {
+      updateFormData('bhk', '');
+    }
+  }, [formData.propertyType, formData.bhk, updateFormData]);
+
+  useEffect(() => {
     if (skipAutocompleteForNextAddressChangeRef.current) {
       skipAutocompleteForNextAddressChangeRef.current = false;
       setAddressSuggestions([]);
@@ -171,6 +183,7 @@ const PropertyBasicInfo = ({
         >
           <option value="">Select Property Type</option>
           <option value="apartment">Apartment</option>
+          <option value="pg">PG</option>
           <option value="independent-house">Independent House</option>
           <option value="villa">Villa</option>
           <option value="builder-floor">Builder Floor</option>
@@ -190,15 +203,21 @@ const PropertyBasicInfo = ({
           onChange={(e) => updateFormData('bhk', e.target.value)}
           required
         >
-          <option value="">Select BHK</option>
-          <option value="1">1 BHK</option>
-          <option value="1.5">1.5 BHK</option>
-          <option value="2">2 BHK</option>
-          <option value="2.5">2.5 BHK</option>
-          <option value="3">3 BHK</option>
-          <option value="3.5">3.5 BHK</option>
-          <option value="4">4 BHK</option>
-          <option value="4+">4+ BHK</option>
+          {formData.propertyType === 'pg' ? (
+            <option value="1rk">1 RK (PG)</option>
+          ) : (
+            <>
+              <option value="">Select BHK</option>
+              <option value="1">1 BHK</option>
+              <option value="1.5">1.5 BHK</option>
+              <option value="2">2 BHK</option>
+              <option value="2.5">2.5 BHK</option>
+              <option value="3">3 BHK</option>
+              <option value="3.5">3.5 BHK</option>
+              <option value="4">4 BHK</option>
+              <option value="4+">4+ BHK</option>
+            </>
+          )}
         </select>
       </div>
 

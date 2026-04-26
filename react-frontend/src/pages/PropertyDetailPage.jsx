@@ -154,9 +154,16 @@ const PropertyDetailPage = () => {
       'villa': 'Villa',
       'builder-floor': 'Builder Floor',
       'studio': 'Studio',
-      'penthouse': 'Penthouse'
+      'penthouse': 'Penthouse',
+      'commercial': 'Commercial Space',
+      'pg': 'PG'
     };
     return labels[type] || type;
+  };
+
+  const getBhkLabel = (bhkValue) => {
+    if (!bhkValue) return '';
+    return String(bhkValue).toLowerCase() === '1rk' ? '1 RK' : `${bhkValue} BHK`;
   };
 
   const getAmenityLabel = (amenity) => {
@@ -218,7 +225,7 @@ const PropertyDetailPage = () => {
   const handleShareProperty = async () => {
     if (!property) return;
     const url = `${window.location.origin}${location.pathname}`;
-    const title = `${property.bhk} BHK ${getPropertyTypeLabel(property.propertyType)} | HimHomes`;
+    const title = `${getBhkLabel(property.bhk)} ${getPropertyTypeLabel(property.propertyType)} | HimHomes`;
     const priceLine = formatPrice(property.expectedPrice, property.propertyFor);
     const rentSuffix = property.propertyFor === 'rent' ? ' / month' : '';
     const place = [property.locality, property.city].filter(Boolean).join(', ');
@@ -322,7 +329,7 @@ const PropertyDetailPage = () => {
         <div className="property-header">
           <div className="header-main">
             <h1 className="property-title">
-              {property.bhk} BHK {getPropertyTypeLabel(property.propertyType)}
+              {getBhkLabel(property.bhk)} {getPropertyTypeLabel(property.propertyType)}
             </h1>
             <div className="property-location">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -418,7 +425,7 @@ const PropertyDetailPage = () => {
                   </svg>
                   <div>
                     <span className="overview-label">BHK</span>
-                    <span className="overview-value">{property.bhk} BHK</span>
+                    <span className="overview-value">{getBhkLabel(property.bhk)}</span>
                   </div>
                 </div>
 

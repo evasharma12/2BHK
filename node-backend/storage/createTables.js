@@ -162,7 +162,7 @@ async function createDatabaseSchema() {
         
         -- Basic Info
         property_for ENUM('rent', 'sell') NOT NULL,
-        property_type ENUM('apartment', 'independent-house', 'villa', 'builder-floor', 'studio', 'penthouse') NOT NULL,
+        property_type ENUM('apartment', 'independent-house', 'villa', 'builder-floor', 'studio', 'penthouse', 'commercial', 'pg') NOT NULL,
         bhk_type VARCHAR(10) NOT NULL, -- '1', '2', '3', '4+', etc.
         
         -- Location
@@ -299,6 +299,33 @@ async function createDatabaseSchema() {
       await connection.execute(`
         CREATE INDEX idx_status_rental_created_at
         ON properties (status, is_rented_out, rented_out_by, created_at)
+      `);
+    }
+    const [propertyTypeColumnRows] = await connection.execute(
+      `
+      SELECT COLUMN_TYPE
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'property_type'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    const propertyTypeColumnType = String(propertyTypeColumnRows?.[0]?.COLUMN_TYPE || '');
+    if (!propertyTypeColumnType.includes("'commercial'") || !propertyTypeColumnType.includes("'pg'")) {
+      await connection.execute(`
+        ALTER TABLE properties
+        MODIFY COLUMN property_type ENUM(
+          'apartment',
+          'independent-house',
+          'villa',
+          'builder-floor',
+          'studio',
+          'penthouse',
+          'commercial',
+          'pg'
+        ) NOT NULL
       `);
     }
     console.log('✓ Ensured properties rental lifecycle columns and index exist');

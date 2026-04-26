@@ -38,6 +38,11 @@ const PropertyCard = ({ property }) => {
     }
   };
 
+  const getBhkLabel = (bhkValue) => {
+    if (!bhkValue) return '';
+    return String(bhkValue).toLowerCase() === '1rk' ? '1 RK' : `${bhkValue} BHK`;
+  };
+
   const getPropertyTypeLabel = (type) => {
     const labels = {
       'apartment': 'Apartment',
@@ -45,7 +50,9 @@ const PropertyCard = ({ property }) => {
       'villa': 'Villa',
       'builder-floor': 'Builder Floor',
       'studio': 'Studio',
-      'penthouse': 'Penthouse'
+      'penthouse': 'Penthouse',
+      'commercial': 'Commercial Space',
+      'pg': 'PG'
     };
     return labels[type] || type;
   };
@@ -58,7 +65,7 @@ const PropertyCard = ({ property }) => {
       <div className="property-card__image-wrapper">
         <img 
           src={coverImage} 
-          alt={`${bhk} BHK ${propertyType}`} 
+          alt={`${getBhkLabel(bhk)} ${propertyType}`} 
           className="property-card__image"
         />
         <div className="property-card__badge">
@@ -79,7 +86,7 @@ const PropertyCard = ({ property }) => {
       <div className="property-card__content">
         <div className="property-card__header">
           <h3 className="property-card__title">
-            {bhk} BHK {getPropertyTypeLabel(propertyType)}
+            {getBhkLabel(bhk)} {getPropertyTypeLabel(propertyType)}
           </h3>
           <div className="property-card__price">
             {formatPrice(expectedPrice)}
