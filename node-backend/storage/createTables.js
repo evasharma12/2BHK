@@ -141,6 +141,25 @@ async function createDatabaseSchema() {
     console.log('✓ Created admin_users table');
 
     // ============================================
+    // 2c. PROPERTY_OWNER_PROFILES TABLE
+    // ============================================
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS phantom_property_owner_profiles (
+        owner_profile_id INT AUTO_INCREMENT PRIMARY KEY,
+        owner_name VARCHAR(255) NOT NULL,
+        owner_phone_number VARCHAR(20) NOT NULL,
+        source ENUM('manual_admin') NOT NULL DEFAULT 'manual_admin',
+        created_by_user_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_phantom_property_owner_profiles_phone (owner_phone_number),
+        INDEX idx_phantom_property_owner_profiles_creator (created_by_user_id),
+        FOREIGN KEY (created_by_user_id) REFERENCES users(user_id) ON DELETE RESTRICT
+      )
+    `);
+    console.log('✓ Created phantom_property_owner_profiles table');
+
+    // ============================================
     // DESTRUCTIVE RESET FOR PROPERTY STACK (cutover)
     // ============================================
     // Drop dependent tables first so properties can be recreated safely.
@@ -158,7 +177,10 @@ async function createDatabaseSchema() {
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS properties (
         property_id INT AUTO_INCREMENT PRIMARY KEY,
-        owner_id INT NOT NULL,
+        owner_id INT NULL,
+        owner_profile_id INT NULL,
+        ownership_mode ENUM('registered_owner', 'phantom_owner') NOT NULL DEFAULT 'registered_owner',
+        chat_owner_user_id INT NULL,
         
         -- Basic Info
         property_for ENUM('rent', 'sell') NOT NULL,
@@ -210,9 +232,14 @@ async function createDatabaseSchema() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         
         FOREIGN KEY (owner_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (owner_profile_id) REFERENCES phantom_property_owner_profiles(owner_profile_id) ON DELETE SET NULL,
+        FOREIGN KEY (chat_owner_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
         
         -- CRITICAL INDEXES FOR FILTERING (Performance optimization)
         INDEX idx_property_for (property_for),
+        INDEX idx_ownership_mode (ownership_mode),
+        INDEX idx_owner_profile_id (owner_profile_id),
+        INDEX idx_chat_owner_user_id (chat_owner_user_id),
         INDEX idx_bhk_type (bhk_type),
         INDEX idx_property_type (property_type),
         INDEX idx_price (expected_price),
@@ -301,6 +328,171 @@ async function createDatabaseSchema() {
         ON properties (status, is_rented_out, rented_out_by, created_at)
       `);
     }
+
+    const [ownerIdColumnRows] = await connection.execute(
+      `
+      SELECT IS_NULLABLE
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'owner_id'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (ownerIdColumnRows.length > 0 && ownerIdColumnRows[0].IS_NULLABLE !== 'YES') {
+      await connection.execute(`
+        ALTER TABLE properties
+        MODIFY COLUMN owner_id INT NULL
+      `);
+    }
+
+    const [ownerProfileIdColumnRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'owner_profile_id'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (ownerProfileIdColumnRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE properties
+        ADD COLUMN owner_profile_id INT NULL
+      `);
+    }
+
+    const [ownershipModeColumnRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'ownership_mode'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (ownershipModeColumnRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE properties
+        ADD COLUMN ownership_mode ENUM('registered_owner', 'phantom_owner') NOT NULL DEFAULT 'registered_owner'
+      `);
+    }
+
+    const [chatOwnerUserIdColumnRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'chat_owner_user_id'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (chatOwnerUserIdColumnRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE properties
+        ADD COLUMN chat_owner_user_id INT NULL
+      `);
+    }
+
+    const [ownershipModeIndexRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND INDEX_NAME = 'idx_ownership_mode'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (ownershipModeIndexRows.length === 0) {
+      await connection.execute(`
+        CREATE INDEX idx_ownership_mode ON properties (ownership_mode)
+      `);
+    }
+
+    const [ownerProfileIdIndexRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND INDEX_NAME = 'idx_owner_profile_id'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (ownerProfileIdIndexRows.length === 0) {
+      await connection.execute(`
+        CREATE INDEX idx_owner_profile_id ON properties (owner_profile_id)
+      `);
+    }
+
+    const [chatOwnerUserIdIndexRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND INDEX_NAME = 'idx_chat_owner_user_id'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (chatOwnerUserIdIndexRows.length === 0) {
+      await connection.execute(`
+        CREATE INDEX idx_chat_owner_user_id ON properties (chat_owner_user_id)
+      `);
+    }
+
+    const [ownerProfileFkRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.KEY_COLUMN_USAGE
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'owner_profile_id'
+        AND REFERENCED_TABLE_NAME = 'phantom_property_owner_profiles'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (ownerProfileFkRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE properties
+        ADD CONSTRAINT fk_properties_owner_profile
+        FOREIGN KEY (owner_profile_id) REFERENCES phantom_property_owner_profiles(owner_profile_id)
+        ON DELETE SET NULL
+      `);
+    }
+
+    const [chatOwnerFkRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.KEY_COLUMN_USAGE
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'chat_owner_user_id'
+        AND REFERENCED_TABLE_NAME = 'users'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (chatOwnerFkRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE properties
+        ADD CONSTRAINT fk_properties_chat_owner_user
+        FOREIGN KEY (chat_owner_user_id) REFERENCES users(user_id)
+        ON DELETE SET NULL
+      `);
+    }
     const [propertyTypeColumnRows] = await connection.execute(
       `
       SELECT COLUMN_TYPE
@@ -328,7 +520,37 @@ async function createDatabaseSchema() {
         ) NOT NULL
       `);
     }
-    console.log('✓ Ensured properties rental lifecycle columns and index exist');
+    console.log('✓ Ensured properties rental lifecycle and ownership columns/indexes exist');
+
+    // ============================================
+    // 3b. PROPERTY_OWNER_CLAIMS TABLE
+    // ============================================
+    // Immutable audit log for "claim later" conversions:
+    // - A property initially posted in phantom mode points to
+    //   phantom_property_owner_profiles.owner_profile_id.
+    // - When that real owner signs up and we transfer ownership to users.user_id,
+    //   we insert one row here to preserve historical traceability.
+    // - This table should be append-only from application logic (no updates/deletes),
+    //   so we can answer who claimed what, when, and by whom.
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS property_owner_claims (
+        owner_claim_id INT AUTO_INCREMENT PRIMARY KEY,
+        property_id INT NOT NULL, -- property being transferred
+        owner_profile_id INT NOT NULL, -- phantom owner profile before claim
+        claimed_user_id INT NOT NULL, -- registered user after claim
+        claimed_by_admin_id INT NULL, -- admin who executed claim (nullable for self-claim/auto)
+        claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- claim audit timestamp
+        FOREIGN KEY (property_id) REFERENCES properties(property_id) ON DELETE CASCADE,
+        FOREIGN KEY (owner_profile_id) REFERENCES phantom_property_owner_profiles(owner_profile_id) ON DELETE RESTRICT,
+        FOREIGN KEY (claimed_user_id) REFERENCES users(user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (claimed_by_admin_id) REFERENCES users(user_id) ON DELETE SET NULL,
+        INDEX idx_property_owner_claims_property (property_id),
+        INDEX idx_property_owner_claims_owner_profile (owner_profile_id),
+        INDEX idx_property_owner_claims_claimed_user (claimed_user_id),
+        INDEX idx_property_owner_claims_claimed_at (claimed_at)
+      )
+    `);
+    console.log('✓ Created property_owner_claims table');
 
     // ============================================
     // 4. PROPERTY_IMAGES TABLE
