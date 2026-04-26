@@ -134,9 +134,11 @@ const User = {
       const sql = `
         SELECT 
           u.*,
-          GROUP_CONCAT(up.phone_number ORDER BY up.is_primary DESC SEPARATOR ',') AS phone_numbers
+          GROUP_CONCAT(up.phone_number ORDER BY up.is_primary DESC SEPARATOR ',') AS phone_numbers,
+          CASE WHEN MAX(CASE WHEN au.is_active = 1 THEN 1 ELSE 0 END) = 1 THEN 1 ELSE 0 END AS is_admin
         FROM users u
         LEFT JOIN user_phones up ON u.user_id = up.user_id
+        LEFT JOIN admin_users au ON u.user_id = au.user_id
         WHERE u.user_id = ?
         GROUP BY u.user_id
         LIMIT 1
