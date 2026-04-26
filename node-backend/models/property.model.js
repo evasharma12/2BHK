@@ -643,10 +643,13 @@ const Property = {
         LEFT JOIN users u ON p.owner_id = u.user_id
         LEFT JOIN phantom_property_owner_profiles pop ON p.owner_profile_id = pop.owner_profile_id
         LEFT JOIN user_phones up ON up.user_id = p.owner_id AND up.is_primary = 1
-        WHERE p.owner_id = ?
+        WHERE (
+          p.owner_id = ?
+          OR (p.ownership_mode = 'phantom_owner' AND p.chat_owner_user_id = ?)
+        )
         ORDER BY p.created_at DESC
       `;
-      db.query(sql, [ownerId], (err, results) => {
+      db.query(sql, [ownerId, ownerId], (err, results) => {
         if (err) return reject(err);
         resolve(results);
       });
