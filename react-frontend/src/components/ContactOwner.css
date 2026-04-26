@@ -70,6 +70,51 @@
   gap: 1.25rem;
 }
 
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.contact-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.contact-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.contact-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.contact-value {
+  font-size: 0.95rem;
+  color: #1e293b;
+  font-weight: 700;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.contact-value:hover {
+  color: #2563eb;
+}
+
 /* Contact Actions */
 .contact-actions {
   display: flex;

@@ -11,6 +11,10 @@
   max-width: 100%;
 }
 
+.mobile-contact-owner-cta {
+  display: none;
+}
+
 .property-detail-container {
   max-width: min(1400px, 100%);
   width: 100%;
@@ -631,7 +635,7 @@
 
 @media (max-width: 768px) {
   .property-detail-page {
-    padding: 4rem 0 2rem;
+    padding: 4rem 0 5.75rem;
   }
 
   .property-detail-container {
@@ -712,6 +716,31 @@
 
   .amenities-list {
     grid-template-columns: 1fr;
+  }
+
+  .mobile-contact-owner-cta {
+    position: fixed;
+    left: 1rem;
+    right: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    z-index: 1200;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(100% - 2rem);
+    padding: 0.95rem 1rem;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 700;
+    box-shadow: 0 8px 24px rgba(29, 78, 216, 0.35);
+    cursor: pointer;
+  }
+
+  .mobile-contact-owner-cta:active {
+    transform: translateY(1px);
   }
 }
 
