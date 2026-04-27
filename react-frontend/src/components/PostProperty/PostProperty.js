@@ -222,7 +222,7 @@ const PostProperty = ({ propertyId = null, initialFormData = null, user = null }
         city: formData.city,
         state: '',
         pincode: formData.pincode,
-        built_up_area: formData.builtUpArea || formData.carpetArea,
+        built_up_area: formData.builtUpArea || null,
         carpet_area: formData.carpetArea,
         total_floors: formData.totalFloors,
         floor_number: formData.floorNumber,

@@ -272,6 +272,7 @@ const Property = {
           maintenance_charges,
           security_deposit,
           description,
+          type_specific_data,
           available_from,
           secondary_phone_number,
           owner_profile_id,
@@ -279,7 +280,7 @@ const Property = {
           chat_owner_user_id
         )
         VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_SRID(POINT(?, ?), 4326), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_SRID(POINT(?, ?), 4326), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
       `;
 
@@ -310,6 +311,7 @@ const Property = {
         maintenance_charges,
         security_deposit,
         description,
+        type_specific_data,
         available_from,
         secondary_phone_number,
         owner_profile_id,
@@ -346,6 +348,7 @@ const Property = {
           maintenance_charges || null,
           security_deposit || null,
           description || null,
+          type_specific_data ? JSON.stringify(type_specific_data) : null,
           available_from || null,
           secondary_phone_number || null,
           owner_profile_id || null,
@@ -726,7 +729,7 @@ const Property = {
       'address_text',
       'built_up_area', 'carpet_area', 'total_floors', 'floor_number', 'bedrooms', 'bathrooms', 'balconies',
       'property_age', 'furnishing', 'facing', 'expected_price', 'price_negotiable', 'maintenance_charges',
-      'security_deposit', 'description', 'available_from', 'secondary_phone_number',
+      'security_deposit', 'description', 'type_specific_data', 'available_from', 'secondary_phone_number',
       'owner_profile_id', 'ownership_mode', 'chat_owner_user_id',
     ];
     const setParts = [];
@@ -741,6 +744,7 @@ const Property = {
         let val = updateData[key];
         if (key === 'price_negotiable') val = val ? 1 : 0;
         if (key === 'balconies' && (val === undefined || val === null)) val = 0;
+        if (key === 'type_specific_data') val = val ? JSON.stringify(val) : null;
         values.push(val);
       }
     }

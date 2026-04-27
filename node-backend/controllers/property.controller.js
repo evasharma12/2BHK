@@ -178,12 +178,25 @@ const ALLOWED_PROPERTY_TYPES = new Set([
   'apartment',
   'pg',
   'independent-house',
-  'villa',
-  'builder-floor',
-  'studio',
-  'penthouse',
   'commercial',
 ]);
+
+const REQUIRED_FIELDS_FOR_ALL_TYPES = [
+  'property_for',
+  'property_type',
+  'locality',
+  'city',
+  'pincode',
+  'total_floors',
+  'floor_number',
+  'expected_price',
+];
+
+const REQUIRED_FIELDS_FOR_NON_PG = [
+  'bhk_type',
+  'carpet_area',
+  'furnishing',
+];
 
 function normalizePropertyTypeInput(value) {
   return String(value || '').trim().toLowerCase();
@@ -191,6 +204,140 @@ function normalizePropertyTypeInput(value) {
 
 function normalizeBhkTypeInput(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function parseBooleanInput(value, fieldName) {
+  if (value === true || value === false) return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  throw new Error(`${fieldName} must be a boolean`);
+}
+
+function parsePgRoomTypes(value) {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error('room_types must be a non-empty array');
+  }
+
+  const normalized = value
+    .map((roomType) => {
+      const type = String(roomType?.type || '').trim().toLowerCase();
+      const count = Number(roomType?.count);
+      if (!type) {
+        throw new Error('Each room_types item must include a non-empty type');
+      }
+      if (!Number.isInteger(count) || count <= 0) {
+        throw new Error('Each room_types item must include a positive integer count');
+      }
+      return { type, count };
+    })
+    .filter(Boolean);
+
+  if (!normalized.length) {
+    throw new Error('room_types must include at least one valid room type');
+  }
+
+  return normalized;
+}
+
+function parseTypeSpecificData(body, normalizedPropertyType) {
+  if (normalizedPropertyType !== 'pg') return null;
+
+  const roomTypesInput = body.room_types ?? body.roomTypes;
+  const mealsAvailableInput = body.meals_available ?? body.mealsAvailable;
+
+  const roomTypes = parsePgRoomTypes(roomTypesInput);
+  const mealsAvailable = parseBooleanInput(mealsAvailableInput, 'meals_available');
+
+  return {
+    pg: {
+      room_types: roomTypes,
+      meals_available: mealsAvailable,
+    },
+  };
+}
+
+function getMissingRequiredFields(body, normalizedPropertyType) {
+  const requiredFields = [...REQUIRED_FIELDS_FOR_ALL_TYPES];
+  if (normalizedPropertyType !== 'pg') {
+    requiredFields.push(...REQUIRED_FIELDS_FOR_NON_PG);
+  } else {
+    requiredFields.push('room_types', 'meals_available');
+  }
+
+  return requiredFields.filter((field) => {
+    if (field === 'room_types') {
+      const roomTypesValue = body.room_types ?? body.roomTypes;
+      return !Array.isArray(roomTypesValue) || roomTypesValue.length === 0;
+    }
+    if (field === 'meals_available') {
+      const mealsValue = body.meals_available ?? body.mealsAvailable;
+      return mealsValue === undefined || mealsValue === null || mealsValue === '';
+    }
+    return body[field] === undefined || body[field] === null || body[field] === '';
+  });
+}
+
+function parsePropertyPayload(body, ownerId) {
+  const normalizedPropertyType = normalizePropertyTypeInput(body.property_type);
+  if (!ALLOWED_PROPERTY_TYPES.has(normalizedPropertyType)) {
+    throw new Error('Invalid property_type. Allowed values are apartment, pg, independent-house, commercial.');
+  }
+
+  const missingFields = getMissingRequiredFields(body, normalizedPropertyType);
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required field: ${missingFields[0]}`);
+  }
+
+  const { latitude, longitude } = parseAndValidateCoordinates(body);
+  let normalizedBhkType = normalizeBhkTypeInput(body.bhk_type);
+  if (normalizedPropertyType === 'pg') {
+    normalizedBhkType = '1rk';
+  }
+  if (!normalizedBhkType) {
+    throw new Error('bhk_type is required.');
+  }
+
+  const secondaryPhoneNumber = normalizeSecondaryPhoneInput(
+    body.secondary_phone_number ?? body.secondaryPhoneNumber
+  );
+
+  const typeSpecificData = parseTypeSpecificData(body, normalizedPropertyType);
+  const isPgProperty = normalizedPropertyType === 'pg';
+
+  return {
+    owner_id: ownerId,
+    property_for: body.property_for,
+    property_type: normalizedPropertyType,
+    bhk_type: normalizedBhkType,
+    address_text: body.address_text,
+    locality: body.locality,
+    city: body.city,
+    state: body.state || null,
+    pincode: body.pincode,
+    latitude,
+    longitude,
+    built_up_area: isPgProperty ? (body.built_up_area ?? null) : body.built_up_area,
+    carpet_area: isPgProperty ? (body.carpet_area ?? null) : body.carpet_area,
+    total_floors: body.total_floors,
+    floor_number: body.floor_number,
+    bedrooms: body.bedrooms || null,
+    bathrooms: body.bathrooms || null,
+    balconies: body.balconies || 0,
+    property_age: body.property_age || '1-3',
+    furnishing: isPgProperty ? (body.furnishing ?? null) : body.furnishing,
+    facing: body.facing || null,
+    expected_price: body.expected_price,
+    price_negotiable: body.price_negotiable || false,
+    maintenance_charges: body.maintenance_charges || null,
+    security_deposit: body.security_deposit || null,
+    description: body.description || null,
+    available_from: body.available_from || null,
+    secondary_phone_number: secondaryPhoneNumber,
+    type_specific_data: typeSpecificData,
+  };
 }
 
 class PropertyController {
@@ -205,74 +352,7 @@ class PropertyController {
   }
 
   static buildPropertyDataFromBody(body, ownerId) {
-    const requiredFields = [
-      'property_for',
-      'property_type',
-      'bhk_type',
-      'locality',
-      'city',
-      'pincode',
-      'built_up_area',
-      'carpet_area',
-      'total_floors',
-      'floor_number',
-      'furnishing',
-      'expected_price',
-    ];
-
-    for (const field of requiredFields) {
-      if (!body[field]) {
-        throw new Error(`Missing required field: ${field}`);
-      }
-    }
-
-    const { latitude, longitude } = parseAndValidateCoordinates(body);
-    const normalizedPropertyType = normalizePropertyTypeInput(body.property_type);
-    if (!ALLOWED_PROPERTY_TYPES.has(normalizedPropertyType)) {
-      throw new Error('Invalid property_type. Allowed values include apartment, pg, independent-house, villa, builder-floor, studio, penthouse, commercial.');
-    }
-    let normalizedBhkType = normalizeBhkTypeInput(body.bhk_type);
-    if (normalizedPropertyType === 'pg') {
-      normalizedBhkType = '1rk';
-    }
-    if (!normalizedBhkType) {
-      throw new Error('bhk_type is required.');
-    }
-
-    const secondaryPhoneNumber = normalizeSecondaryPhoneInput(
-      body.secondary_phone_number ?? body.secondaryPhoneNumber
-    );
-
-    return {
-      owner_id: ownerId,
-      property_for: body.property_for,
-      property_type: normalizedPropertyType,
-      bhk_type: normalizedBhkType,
-      address_text: body.address_text,
-      locality: body.locality,
-      city: body.city,
-      state: body.state || null,
-      pincode: body.pincode,
-      latitude,
-      longitude,
-      built_up_area: body.built_up_area,
-      carpet_area: body.carpet_area,
-      total_floors: body.total_floors,
-      floor_number: body.floor_number,
-      bedrooms: body.bedrooms || null,
-      bathrooms: body.bathrooms || null,
-      balconies: body.balconies || 0,
-      property_age: body.property_age || '1-3',
-      furnishing: body.furnishing,
-      facing: body.facing || null,
-      expected_price: body.expected_price,
-      price_negotiable: body.price_negotiable || false,
-      maintenance_charges: body.maintenance_charges || null,
-      security_deposit: body.security_deposit || null,
-      description: body.description || null,
-      available_from: body.available_from || null,
-      secondary_phone_number: secondaryPhoneNumber,
-    };
+    return parsePropertyPayload(body, ownerId);
   }
 
   static async createProperty(req, res) {
@@ -293,84 +373,8 @@ class PropertyController {
         await User.updateUserType(ownerId, 'both');
       }
 
-      const requiredFields = [
-        'property_for',
-        'property_type',
-        'bhk_type',
-        'locality',
-        'city',
-        'pincode',
-        'built_up_area',
-        'carpet_area',
-        'total_floors',
-        'floor_number',
-        'furnishing',
-        'expected_price',
-      ];
-
-      for (const field of requiredFields) {
-        if (!body[field]) {
-          return res.status(400).json({
-            success: false,
-            message: `Missing required field: ${field}`,
-          });
-        }
-      }
-
       const mobileNo = body.mobile_no || body.mobileNo;
-      const secondaryPhoneNumber = normalizeSecondaryPhoneInput(
-        body.secondary_phone_number ?? body.secondaryPhoneNumber
-      );
-      const { latitude, longitude } = parseAndValidateCoordinates(body);
-      const normalizedPropertyType = normalizePropertyTypeInput(body.property_type);
-      if (!ALLOWED_PROPERTY_TYPES.has(normalizedPropertyType)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid property_type. Allowed values include apartment, pg, independent-house, villa, builder-floor, studio, penthouse, commercial.',
-        });
-      }
-      let normalizedBhkType = normalizeBhkTypeInput(body.bhk_type);
-      if (normalizedPropertyType === 'pg') {
-        normalizedBhkType = '1rk';
-      }
-      if (!normalizedBhkType) {
-        return res.status(400).json({
-          success: false,
-          message: 'bhk_type is required.',
-        });
-      }
-
-      const propertyData = {
-        owner_id: ownerId,
-        property_for: body.property_for,
-        property_type: normalizedPropertyType,
-        bhk_type: normalizedBhkType,
-        address_text: body.address_text,
-        locality: body.locality,
-        city: body.city,
-        state: body.state || null,
-        pincode: body.pincode,
-        latitude,
-        longitude,
-        built_up_area: body.built_up_area,
-        carpet_area: body.carpet_area,
-        total_floors: body.total_floors,
-        floor_number: body.floor_number,
-        bedrooms: body.bedrooms || null,
-        bathrooms: body.bathrooms || null,
-        balconies: body.balconies || 0,
-        // DB schema requires property_age; default when omitted from optional UI.
-        property_age: body.property_age || '1-3',
-        furnishing: body.furnishing,
-        facing: body.facing || null,
-        expected_price: body.expected_price,
-        price_negotiable: body.price_negotiable || false,
-        maintenance_charges: body.maintenance_charges || null,
-        security_deposit: body.security_deposit || null,
-        description: body.description || null,
-        available_from: body.available_from || null,
-        secondary_phone_number: secondaryPhoneNumber,
-      };
+      const propertyData = parsePropertyPayload(body, ownerId);
 
       if (mobileNo) {
         await upsertPrimaryPhone(ownerId, mobileNo);
@@ -395,6 +399,11 @@ class PropertyController {
     } catch (error) {
       console.error('Create property error:', error);
       if (
+        error?.message?.includes('Missing required field') ||
+        error?.message?.includes('Invalid property_type') ||
+        error?.message?.includes('room_types') ||
+        error?.message?.includes('meals_available') ||
+        error?.message?.includes('bhk_type') ||
         error?.message?.includes('Invalid mobile number') ||
         error?.message?.includes('Invalid secondary mobile number') ||
         error?.message?.includes('Latitude') ||
@@ -693,82 +702,10 @@ class PropertyController {
         });
       }
       const body = req.body;
-      const requiredFields = [
-        'property_for',
-        'property_type',
-        'bhk_type',
-        'locality',
-        'city',
-        'pincode',
-        'built_up_area',
-        'carpet_area',
-        'total_floors',
-        'floor_number',
-        'furnishing',
-        'expected_price',
-      ];
-      for (const field of requiredFields) {
-        if (!body[field]) {
-          return res.status(400).json({
-            success: false,
-            message: `Missing required field: ${field}`,
-          });
-        }
-      }
-
       const mobileNo = body.mobile_no || body.mobileNo;
-      const secondaryPhoneNumber = normalizeSecondaryPhoneInput(
-        body.secondary_phone_number ?? body.secondaryPhoneNumber
-      );
-      const { latitude, longitude } = parseAndValidateCoordinates(body);
-      const normalizedPropertyType = normalizePropertyTypeInput(body.property_type);
-      if (!ALLOWED_PROPERTY_TYPES.has(normalizedPropertyType)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid property_type. Allowed values include apartment, pg, independent-house, villa, builder-floor, studio, penthouse, commercial.',
-        });
-      }
-      let normalizedBhkType = normalizeBhkTypeInput(body.bhk_type);
-      if (normalizedPropertyType === 'pg') {
-        normalizedBhkType = '1rk';
-      }
-      if (!normalizedBhkType) {
-        return res.status(400).json({
-          success: false,
-          message: 'bhk_type is required.',
-        });
-      }
-
-      const updateData = {
-        property_for: body.property_for,
-        property_type: normalizedPropertyType,
-        bhk_type: normalizedBhkType,
-        address_text: body.address_text,
-        locality: body.locality,
-        city: body.city,
-        state: body.state || null,
-        pincode: body.pincode,
-        latitude,
-        longitude,
-        built_up_area: body.built_up_area,
-        carpet_area: body.carpet_area,
-        total_floors: body.total_floors,
-        floor_number: body.floor_number,
-        bedrooms: body.bedrooms || null,
-        bathrooms: body.bathrooms || null,
-        balconies: body.balconies != null ? body.balconies : 0,
-        // DB schema requires property_age; default when omitted from optional UI.
-        property_age: body.property_age || '1-3',
-        furnishing: body.furnishing,
-        facing: body.facing || null,
-        expected_price: body.expected_price,
-        price_negotiable: body.price_negotiable || false,
-        maintenance_charges: body.maintenance_charges || null,
-        security_deposit: body.security_deposit || null,
-        description: body.description || null,
-        available_from: body.available_from || null,
-        secondary_phone_number: secondaryPhoneNumber,
-      };
+      const updateData = parsePropertyPayload(body, undefined);
+      delete updateData.owner_id;
+      updateData.balconies = body.balconies != null ? body.balconies : 0;
       if (body.amenities && Array.isArray(body.amenities)) {
         updateData.amenities = body.amenities;
       }
@@ -798,6 +735,11 @@ class PropertyController {
     } catch (error) {
       console.error('Update property error:', error);
       if (
+        error?.message?.includes('Missing required field') ||
+        error?.message?.includes('Invalid property_type') ||
+        error?.message?.includes('room_types') ||
+        error?.message?.includes('meals_available') ||
+        error?.message?.includes('bhk_type') ||
         error?.message?.includes('Invalid mobile number') ||
         error?.message?.includes('Invalid secondary mobile number') ||
         error?.message?.includes('Latitude') ||

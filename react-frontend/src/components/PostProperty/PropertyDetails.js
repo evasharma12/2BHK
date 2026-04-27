@@ -5,6 +5,19 @@ const PropertyDetails = ({ formData, updateFormData }) => {
     <div className="form-section">
       {/* Area Details */}
       <div className="form-field">
+        <label htmlFor="builtUpArea" className="field-label">Built-up Area (sq ft) (Optional)</label>
+        <input
+          type="number"
+          id="builtUpArea"
+          className="field-input"
+          placeholder="e.g., 1200"
+          value={formData.builtUpArea}
+          onChange={(e) => updateFormData('builtUpArea', e.target.value)}
+          min="100"
+        />
+      </div>
+
+      <div className="form-field">
         <label htmlFor="carpetArea" className="field-label">Carpet Area (sq ft)*</label>
         <input
           type="number"

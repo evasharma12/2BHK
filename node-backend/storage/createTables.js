@@ -635,20 +635,46 @@ async function createDatabaseSchema() {
       [targetDb]
     );
     const propertyTypeColumnType = String(propertyTypeColumnRows?.[0]?.COLUMN_TYPE || '');
-    if (!propertyTypeColumnType.includes("'commercial'") || !propertyTypeColumnType.includes("'pg'")) {
+    const deprecatedPropertyTypes = ['villa', 'builder-floor', 'studio', 'penthouse'];
+    const hasDeprecatedPropertyTypesInEnum = deprecatedPropertyTypes.some((type) =>
+      propertyTypeColumnType.includes(`'${type}'`)
+    );
+    const missingAllowedPropertyTypeInEnum =
+      !propertyTypeColumnType.includes("'apartment'") ||
+      !propertyTypeColumnType.includes("'independent-house'") ||
+      !propertyTypeColumnType.includes("'commercial'") ||
+      !propertyTypeColumnType.includes("'pg'");
+
+    if (hasDeprecatedPropertyTypesInEnum || missingAllowedPropertyTypeInEnum) {
+      const [deprecatedTypeRows] = await connection.execute(
+        `
+        SELECT property_type, COUNT(*) AS total
+        FROM properties
+        WHERE property_type IN ('villa', 'builder-floor', 'studio', 'penthouse')
+        GROUP BY property_type
+        `
+      );
+
+      if (deprecatedTypeRows.length > 0) {
+        const countsSummary = deprecatedTypeRows
+          .map((row) => `${row.property_type}: ${row.total}`)
+          .join(', ');
+        throw new Error(
+          `Cannot tighten properties.property_type enum; deprecated values exist (${countsSummary}). ` +
+          'Migrate or delete these rows before startup.'
+        );
+      }
+
       await connection.execute(`
         ALTER TABLE properties
         MODIFY COLUMN property_type ENUM(
           'apartment',
           'independent-house',
-          'villa',
-          'builder-floor',
-          'studio',
-          'penthouse',
           'commercial',
           'pg'
         ) NOT NULL
       `);
+      console.log('✓ Tightened properties.property_type enum to active values only');
     }
     const [typeSpecificDataColumnRows] = await connection.execute(
       `
