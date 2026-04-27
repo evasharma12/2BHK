@@ -99,6 +99,11 @@ PG dynamic-fields rollout verification checklist:
 
 - `documentation/Feature Plans/PG Dynamic Fields Rollout Smoke Test Checklist.md`
 
+If startup finds deprecated `properties.property_type` rows during enum tightening:
+
+- Default behavior: log a warning and continue startup (enum tighten is skipped).
+- To enforce hard-block behavior: set `STRICT_PROPERTY_TYPE_ENUM_GUARD=true`.
+
 Example dry-run:
 
 ```bash

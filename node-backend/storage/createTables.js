@@ -659,31 +659,44 @@ async function createDatabaseSchema() {
         `
       );
 
+      const strictPropertyTypeEnumGuard =
+        String(process.env.STRICT_PROPERTY_TYPE_ENUM_GUARD || '').toLowerCase() === 'true';
+
       if (deprecatedTypeRows.length > 0) {
         const countsSummary = deprecatedTypeRows
           .map((row) => `${row.property_type}: ${row.total}`)
           .join(', ');
-        console.error(
-          `[rollout-safety] enum guard blocked migration; deprecated property_type rows found (${countsSummary})`
-        );
-        throw new Error(
-          `Cannot tighten properties.property_type enum; deprecated values exist (${countsSummary}). ` +
-          'Migrate or delete these rows before startup.'
+
+        if (strictPropertyTypeEnumGuard) {
+          console.error(
+            `[rollout-safety] enum guard blocked migration; deprecated property_type rows found (${countsSummary})`
+          );
+          throw new Error(
+            `Cannot tighten properties.property_type enum; deprecated values exist (${countsSummary}). ` +
+            'Migrate or delete these rows before startup.'
+          );
+        }
+
+        const warning =
+          `[rollout-safety] Deprecated property_type rows found (${countsSummary}); ` +
+          'skipping enum tighten to keep startup non-blocking. ' +
+          'Set STRICT_PROPERTY_TYPE_ENUM_GUARD=true to fail hard instead.';
+        console.warn(warning);
+        rolloutMigrationLogs.push(warning);
+      } else {
+        await connection.execute(`
+          ALTER TABLE properties
+          MODIFY COLUMN property_type ENUM(
+            'apartment',
+            'independent-house',
+            'commercial',
+            'pg'
+          ) NOT NULL
+        `);
+        rolloutMigrationLogs.push(
+          '[rollout-safety] Tightened properties.property_type enum to: apartment, independent-house, commercial, pg'
         );
       }
-
-      await connection.execute(`
-        ALTER TABLE properties
-        MODIFY COLUMN property_type ENUM(
-          'apartment',
-          'independent-house',
-          'commercial',
-          'pg'
-        ) NOT NULL
-      `);
-      rolloutMigrationLogs.push(
-        '[rollout-safety] Tightened properties.property_type enum to: apartment, independent-house, commercial, pg'
-      );
     } else {
       rolloutMigrationLogs.push(
         '[rollout-safety] properties.property_type enum already matches active values; no ALTER needed'
