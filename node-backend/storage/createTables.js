@@ -325,15 +325,15 @@ async function createDatabaseSchema() {
         location POINT NOT NULL SRID 4326,
         
         -- Property Details
-        built_up_area INT NOT NULL, -- in sq ft
-        carpet_area INT NOT NULL,
+        built_up_area INT NULL, -- in sq ft (nullable for PG)
+        carpet_area INT NULL, -- nullable for PG
         total_floors INT NOT NULL,
         floor_number INT NOT NULL,
         bedrooms INT,
         bathrooms INT,
         balconies INT DEFAULT 0,
         property_age ENUM('0-1', '1-3', '3-5', '5-10', '10+') NOT NULL,
-        furnishing ENUM('fully-furnished', 'semi-furnished', 'unfurnished') NOT NULL,
+        furnishing ENUM('fully-furnished', 'semi-furnished', 'unfurnished') NULL, -- nullable for PG
         facing ENUM('north', 'south', 'east', 'west', 'north-east', 'north-west', 'south-east', 'south-west'),
         
         -- Pricing
@@ -344,6 +344,7 @@ async function createDatabaseSchema() {
         
         -- Description
         description TEXT,
+        type_specific_data JSON NULL, -- per-type metadata (e.g. PG fields)
         
         -- Availability
         available_from DATE,
@@ -647,6 +648,77 @@ async function createDatabaseSchema() {
           'commercial',
           'pg'
         ) NOT NULL
+      `);
+    }
+    const [typeSpecificDataColumnRows] = await connection.execute(
+      `
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'type_specific_data'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (typeSpecificDataColumnRows.length === 0) {
+      await connection.execute(`
+        ALTER TABLE properties
+        ADD COLUMN type_specific_data JSON NULL
+      `);
+    }
+
+    const [builtUpAreaNullabilityRows] = await connection.execute(
+      `
+      SELECT IS_NULLABLE
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'built_up_area'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (builtUpAreaNullabilityRows.length > 0 && builtUpAreaNullabilityRows[0].IS_NULLABLE !== 'YES') {
+      await connection.execute(`
+        ALTER TABLE properties
+        MODIFY COLUMN built_up_area INT NULL
+      `);
+    }
+
+    const [carpetAreaNullabilityRows] = await connection.execute(
+      `
+      SELECT IS_NULLABLE
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'carpet_area'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (carpetAreaNullabilityRows.length > 0 && carpetAreaNullabilityRows[0].IS_NULLABLE !== 'YES') {
+      await connection.execute(`
+        ALTER TABLE properties
+        MODIFY COLUMN carpet_area INT NULL
+      `);
+    }
+
+    const [furnishingNullabilityRows] = await connection.execute(
+      `
+      SELECT IS_NULLABLE
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ?
+        AND TABLE_NAME = 'properties'
+        AND COLUMN_NAME = 'furnishing'
+      LIMIT 1
+      `,
+      [targetDb]
+    );
+    if (furnishingNullabilityRows.length > 0 && furnishingNullabilityRows[0].IS_NULLABLE !== 'YES') {
+      await connection.execute(`
+        ALTER TABLE properties
+        MODIFY COLUMN furnishing ENUM('fully-furnished', 'semi-furnished', 'unfurnished') NULL
       `);
     }
     console.log('✓ Ensured properties rental lifecycle and ownership columns/indexes exist');
