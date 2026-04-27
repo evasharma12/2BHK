@@ -523,8 +523,11 @@ const Property = {
     });
   },
 
-  // Soft-delete a property (only if owned by ownerId) and log owner feedback. Returns affected row count.
-  async deleteById(propertyId, ownerId, rentedViaHimHomes) {
+  // Soft-delete a property if requester is:
+  // - the registered owner (owner_id), or
+  // - the chat owner admin for phantom listings (chat_owner_user_id when ownership_mode=phantom_owner).
+  // Returns affected row count.
+  async deleteById(propertyId, actorUserId, rentedViaHimHomes) {
     return new Promise((resolve, reject) => {
       db.getConnection((connErr, conn) => {
         if (connErr) return reject(connErr);
@@ -539,10 +542,14 @@ const Property = {
             `
               SELECT property_id, property_for, property_type, city, locality
               FROM properties
-              WHERE property_id = ? AND owner_id = ?
+              WHERE property_id = ?
+                AND (
+                  owner_id = ?
+                  OR (ownership_mode = 'phantom_owner' AND chat_owner_user_id = ?)
+                )
               LIMIT 1
             `,
-            [propertyId, ownerId],
+            [propertyId, actorUserId, actorUserId],
             (findErr, rows) => {
               if (findErr) {
                 return conn.rollback(() => {
@@ -575,7 +582,7 @@ const Property = {
                 `,
                 [
                   property.property_id,
-                  ownerId,
+                  actorUserId,
                   rentedViaHimHomes ? 1 : 0,
                   property.property_for,
                   property.property_type,
@@ -598,9 +605,13 @@ const Property = {
                         rented_out_by = ?,
                         status = 'inactive',
                         updated_at = CURRENT_TIMESTAMP
-                      WHERE property_id = ? AND owner_id = ?
+                      WHERE property_id = ?
+                        AND (
+                          owner_id = ?
+                          OR (ownership_mode = 'phantom_owner' AND chat_owner_user_id = ?)
+                        )
                     `,
-                    [rentedViaHimHomes ? 'himhomes' : 'other', propertyId, ownerId],
+                    [rentedViaHimHomes ? 'himhomes' : 'other', propertyId, actorUserId, actorUserId],
                     (updateErr, updateResult) => {
                       if (updateErr) {
                         return conn.rollback(() => {
