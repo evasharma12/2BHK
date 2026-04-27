@@ -185,10 +185,6 @@ const PropertyBasicInfo = ({
           <option value="apartment">Apartment</option>
           <option value="pg">PG</option>
           <option value="independent-house">Independent House</option>
-          <option value="villa">Villa</option>
-          <option value="builder-floor">Builder Floor</option>
-          <option value="studio">Studio Apartment</option>
-          <option value="penthouse">Penthouse</option>
           <option value="commercial">Commercial Space</option>
         </select>
       </div>

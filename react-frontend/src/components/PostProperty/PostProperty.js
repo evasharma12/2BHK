@@ -40,6 +40,8 @@ const defaultFormData = {
   postForSomeoneElse: false,
   ownerName: '',
   ownerPhoneNumber: '',
+  roomTypes: [{ type: '', count: '' }],
+  mealsAvailable: '',
 };
 
 const PostProperty = ({ propertyId = null, initialFormData = null, user = null }) => {
@@ -117,6 +119,31 @@ const PostProperty = ({ propertyId = null, initialFormData = null, user = null }
     } catch (_) {}
   }, [currentStep, draftStorageKey, formData, isEditMode]);
 
+  useEffect(() => {
+    if (formData.propertyType === 'pg') {
+      setFormData((prev) => {
+        const normalizedRoomTypes = Array.isArray(prev.roomTypes) && prev.roomTypes.length > 0
+          ? prev.roomTypes
+          : [{ type: '', count: '' }];
+        return {
+          ...prev,
+          roomTypes: normalizedRoomTypes,
+          mealsAvailable:
+            prev.mealsAvailable === true || prev.mealsAvailable === false
+              ? prev.mealsAvailable
+              : '',
+        };
+      });
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      roomTypes: [{ type: '', count: '' }],
+      mealsAvailable: '',
+    }));
+  }, [formData.propertyType]);
+
   const updateFormData = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -165,6 +192,33 @@ const PostProperty = ({ propertyId = null, initialFormData = null, user = null }
   const handleNext = () => {
     setError('');
     if (currentStep === 1 && !validateStepOne()) return;
+    if (currentStep === 2) {
+      if (formData.propertyType === 'pg') {
+        const normalizedRoomTypes = (Array.isArray(formData.roomTypes) ? formData.roomTypes : [])
+          .map((roomType) => ({
+            type: String(roomType?.type || '').trim(),
+            count: Number(roomType?.count),
+          }))
+          .filter((roomType) => roomType.type && Number.isInteger(roomType.count) && roomType.count > 0);
+        if (!normalizedRoomTypes.length) {
+          setError('Add at least one valid PG room type with count.');
+          return;
+        }
+        if (!(formData.mealsAvailable === true || formData.mealsAvailable === false)) {
+          setError('Select whether meals are available for this PG.');
+          return;
+        }
+      } else {
+        if (!String(formData.carpetArea || '').trim()) {
+          setError('Enter carpet area.');
+          return;
+        }
+        if (!String(formData.furnishing || '').trim()) {
+          setError('Select furnishing status.');
+          return;
+        }
+      }
+    }
     if (currentStep < totalSteps) {
       setCurrentStep(prev => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -238,6 +292,19 @@ const PostProperty = ({ propertyId = null, initialFormData = null, user = null }
         amenities: formData.amenities || [],
         image_urls: imageUrls,
       };
+
+      if (formData.propertyType === 'pg') {
+        payload.room_types = (Array.isArray(formData.roomTypes) ? formData.roomTypes : [])
+          .map((roomType) => ({
+            type: String(roomType?.type || '').trim().toLowerCase(),
+            count: Number(roomType?.count),
+          }))
+          .filter((roomType) => roomType.type && Number.isInteger(roomType.count) && roomType.count > 0);
+        payload.meals_available =
+          formData.mealsAvailable === true || formData.mealsAvailable === false
+            ? formData.mealsAvailable
+            : '';
+      }
 
       const wantsPhantomPost = !isEditMode && canPostForOthers && Boolean(formData.postForSomeoneElse);
       const needsPhantomOwnerPayload = wantsPhantomPost || isPhantomEditMode;

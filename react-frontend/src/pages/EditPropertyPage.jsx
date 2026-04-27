@@ -7,6 +7,22 @@ import './EditPropertyPage.css';
 
 const mapBackendToFormData = (p) => {
   if (!p) return null;
+  const parsedTypeSpecificData = (() => {
+    if (!p.type_specific_data) return {};
+    if (typeof p.type_specific_data === 'object') return p.type_specific_data;
+    try {
+      return JSON.parse(p.type_specific_data);
+    } catch (_) {
+      return {};
+    }
+  })();
+  const pgData = parsedTypeSpecificData?.pg || {};
+  const normalizedRoomTypes = Array.isArray(pgData.room_types)
+    ? pgData.room_types.map((roomType) => ({
+        type: String(roomType?.type || ''),
+        count: roomType?.count != null ? String(roomType.count) : '',
+      }))
+    : [{ type: '', count: '' }];
   const collapsedAddress = (() => {
     const text = String(p.address_text || '').trim().replace(/\s+/g, ' ');
     const repeatedPattern = /^(.*?),\s*\1$/;
@@ -60,6 +76,11 @@ const mapBackendToFormData = (p) => {
     ownerName: p.display_owner_name || p.owner_name || '',
     ownerPhoneNumber: p.display_owner_phone || p.owner_phone || '',
     secondaryPhoneNumber: p.secondary_phone_number || '',
+    roomTypes: normalizedRoomTypes.length ? normalizedRoomTypes : [{ type: '', count: '' }],
+    mealsAvailable:
+      pgData.meals_available === true || pgData.meals_available === false
+        ? pgData.meals_available
+        : '',
     amenities: Array.isArray(p.amenities) ? p.amenities : [],
     images: (p.images || []).map((url) => ({ url, preview: url })),
   };
