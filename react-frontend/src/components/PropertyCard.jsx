@@ -68,10 +68,14 @@ const PropertyCard = ({ property }) => {
       .map((roomType) => {
         const roomLabel = String(roomType?.type || '').trim();
         const roomCount = Number(roomType?.count);
-        if (!roomLabel || !Number.isFinite(roomCount) || roomCount <= 0) {
+        if (!roomLabel) {
           return null;
         }
-        return `${roomLabel.charAt(0).toUpperCase()}${roomLabel.slice(1)} x${roomCount}`;
+        const prettyRoomLabel = `${roomLabel.charAt(0).toUpperCase()}${roomLabel.slice(1)}`;
+        if (!Number.isFinite(roomCount) || roomCount <= 0) {
+          return prettyRoomLabel;
+        }
+        return `${prettyRoomLabel} x${roomCount}`;
       })
       .filter(Boolean)
       .join(', ')

@@ -197,11 +197,26 @@ const PostProperty = ({ propertyId = null, initialFormData = null, user = null }
         const normalizedRoomTypes = (Array.isArray(formData.roomTypes) ? formData.roomTypes : [])
           .map((roomType) => ({
             type: String(roomType?.type || '').trim(),
-            count: Number(roomType?.count),
+            countRaw: roomType?.count,
           }))
-          .filter((roomType) => roomType.type && Number.isInteger(roomType.count) && roomType.count > 0);
+          .filter((roomType) => roomType.type);
         if (!normalizedRoomTypes.length) {
-          setError('Add at least one valid PG room type with count.');
+          setError('Add at least one valid PG room type.');
+          return;
+        }
+        const hasInvalidCounts = normalizedRoomTypes.some((roomType) => {
+          const rawCount = roomType.countRaw;
+          const hasCountValue = !(
+            rawCount === undefined ||
+            rawCount === null ||
+            String(rawCount).trim() === ''
+          );
+          if (!hasCountValue) return false;
+          const parsedCount = Number(rawCount);
+          return !Number.isInteger(parsedCount) || parsedCount <= 0;
+        });
+        if (hasInvalidCounts) {
+          setError('Room count must be a positive whole number when provided.');
           return;
         }
         if (!(formData.mealsAvailable === true || formData.mealsAvailable === false)) {
@@ -297,9 +312,24 @@ const PostProperty = ({ propertyId = null, initialFormData = null, user = null }
         payload.room_types = (Array.isArray(formData.roomTypes) ? formData.roomTypes : [])
           .map((roomType) => ({
             type: String(roomType?.type || '').trim().toLowerCase(),
-            count: Number(roomType?.count),
+            countRaw: roomType?.count,
           }))
-          .filter((roomType) => roomType.type && Number.isInteger(roomType.count) && roomType.count > 0);
+          .filter((roomType) => roomType.type)
+          .map((roomType) => {
+            const rawCount = roomType.countRaw;
+            const hasCountValue = !(
+              rawCount === undefined ||
+              rawCount === null ||
+              String(rawCount).trim() === ''
+            );
+            if (!hasCountValue) {
+              return { type: roomType.type };
+            }
+            const parsedCount = Number(rawCount);
+            return Number.isInteger(parsedCount) && parsedCount > 0
+              ? { type: roomType.type, count: parsedCount }
+              : { type: roomType.type };
+          });
         payload.meals_available =
           formData.mealsAvailable === true || formData.mealsAvailable === false
             ? formData.mealsAvailable

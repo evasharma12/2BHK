@@ -125,7 +125,7 @@ const PropertyDetails = ({ formData, updateFormData }) => {
         <>
           <div className="form-field form-field--full">
             <label className="field-label">PG Room Types*</label>
-            <span className="field-hint">Add all room configurations with available room count.</span>
+            <span className="field-hint">Add room types. Count is optional.</span>
           </div>
           {roomTypes.map((roomType, index) => (
             <React.Fragment key={`room-type-${index}`}>
@@ -147,7 +147,7 @@ const PropertyDetails = ({ formData, updateFormData }) => {
               </div>
 
               <div className="form-field">
-                <label htmlFor={`roomCount-${index}`} className="field-label">Count*</label>
+                <label htmlFor={`roomCount-${index}`} className="field-label">Count (Optional)</label>
                 <input
                   type="number"
                   id={`roomCount-${index}`}
@@ -156,7 +156,6 @@ const PropertyDetails = ({ formData, updateFormData }) => {
                   value={roomType.count}
                   onChange={(e) => updateRoomType(index, 'count', e.target.value)}
                   min="1"
-                  required
                 />
                 {roomTypes.length > 1 && (
                   <button

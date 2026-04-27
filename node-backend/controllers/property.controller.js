@@ -224,12 +224,22 @@ function parsePgRoomTypes(value) {
   const normalized = value
     .map((roomType) => {
       const type = String(roomType?.type || '').trim().toLowerCase();
-      const count = Number(roomType?.count);
       if (!type) {
         throw new Error('Each room_types item must include a non-empty type');
       }
+      const rawCount = roomType?.count;
+      const hasCountValue = !(
+        rawCount === undefined ||
+        rawCount === null ||
+        (typeof rawCount === 'string' && rawCount.trim() === '')
+      );
+      if (!hasCountValue) {
+        return { type };
+      }
+
+      const count = Number(rawCount);
       if (!Number.isInteger(count) || count <= 0) {
-        throw new Error('Each room_types item must include a positive integer count');
+        throw new Error('Each room_types item count must be a positive integer when provided');
       }
       return { type, count };
     })
