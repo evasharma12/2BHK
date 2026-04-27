@@ -107,6 +107,8 @@ const PropertiesListPage = () => {
           builtUpArea: p.built_up_area,
           carpetArea: p.carpet_area,
           furnishing: p.furnishing,
+          pgRoomTypes: p.type_specific_data?.pg?.room_types || [],
+          pgMealsAvailable: p.type_specific_data?.pg?.meals_available,
           images: p.cover_image ? [p.cover_image] : [],
           amenities: [],
           lat: Number(p.lat),

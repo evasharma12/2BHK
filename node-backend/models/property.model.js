@@ -473,6 +473,7 @@ const Property = {
           p.built_up_area,
           p.carpet_area,
           p.furnishing,
+          p.type_specific_data,
           p.status,
           COALESCE(p.is_rented_out, 0) AS is_rented_out,
           p.rented_out_by,
@@ -500,7 +501,24 @@ const Property = {
 
       db.query(sql, queryValues, (err, results) => {
         if (err) return reject(err);
-        resolve(results);
+        const normalizedResults = (results || []).map((property) => {
+          let parsedTypeSpecificData = null;
+          if (property.type_specific_data) {
+            try {
+              parsedTypeSpecificData = typeof property.type_specific_data === 'string'
+                ? JSON.parse(property.type_specific_data)
+                : property.type_specific_data;
+            } catch (parseErr) {
+              parsedTypeSpecificData = null;
+            }
+          }
+
+          return {
+            ...property,
+            type_specific_data: parsedTypeSpecificData,
+          };
+        });
+        resolve(normalizedResults);
       });
     });
   },

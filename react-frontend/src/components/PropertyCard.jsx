@@ -16,6 +16,8 @@ const PropertyCard = ({ property }) => {
     expectedPrice,
     builtUpArea,
     furnishing,
+    pgRoomTypes,
+    pgMealsAvailable,
     amenities
   } = property;
 
@@ -59,6 +61,27 @@ const PropertyCard = ({ property }) => {
 
   const coverImage = images && images.length > 0 ? images[0] : DEFAULT_NO_IMAGE_URL;
   const topAmenities = amenities ? amenities.slice(0, 3) : [];
+  const isPgProperty = propertyType === 'pg';
+
+  const pgRoomTypeSummary = Array.isArray(pgRoomTypes) && pgRoomTypes.length > 0
+    ? pgRoomTypes
+      .map((roomType) => {
+        const roomLabel = String(roomType?.type || '').trim();
+        const roomCount = Number(roomType?.count);
+        if (!roomLabel || !Number.isFinite(roomCount) || roomCount <= 0) {
+          return null;
+        }
+        return `${roomLabel.charAt(0).toUpperCase()}${roomLabel.slice(1)} x${roomCount}`;
+      })
+      .filter(Boolean)
+      .join(', ')
+    : 'Room details unavailable';
+
+  const furnishingLabel = furnishing === 'fully-furnished'
+    ? 'Fully Furnished'
+    : furnishing === 'semi-furnished'
+      ? 'Semi Furnished'
+      : 'Unfurnished';
 
   return (
     <Link to={`/properties/${id}`} className="property-card">
@@ -107,15 +130,16 @@ const PropertyCard = ({ property }) => {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
             </svg>
-            {builtUpArea} sq ft
+            {isPgProperty ? pgRoomTypeSummary : `${builtUpArea} sq ft`}
           </div>
           <div className="spec-item">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M20 9v11a2 2 0 01-2 2H6a2 2 0 01-2-2V9"/>
               <path d="M9 22V12h6v10M2 10.6L12 2l10 8.6"/>
             </svg>
-            {furnishing === 'fully-furnished' ? 'Fully Furnished' : 
-             furnishing === 'semi-furnished' ? 'Semi Furnished' : 'Unfurnished'}
+            {isPgProperty
+              ? `Meals: ${pgMealsAvailable ? 'Available' : 'Not available'}`
+              : furnishingLabel}
           </div>
         </div>
 
