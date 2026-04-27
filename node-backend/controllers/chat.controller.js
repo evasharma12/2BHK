@@ -36,7 +36,14 @@ class ChatController {
         });
       }
 
-      const ownerUserId = property.owner_id;
+      const ownerUserId = Number(property.effective_owner_user_id || 0);
+      if (!ownerUserId) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'This listing does not have a chat owner configured yet. Please contact support.',
+        });
+      }
       if (Number(ownerUserId) === Number(currentUserId)) {
         return res.status(400).json({
           success: false,

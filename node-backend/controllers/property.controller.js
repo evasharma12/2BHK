@@ -502,6 +502,10 @@ class PropertyController {
       if (
         error?.message?.includes('Missing required field') ||
         error?.message?.includes('Invalid') ||
+        error?.message?.includes('room_types') ||
+        error?.message?.includes('meals_available') ||
+        error?.message?.includes('Invalid mobile number') ||
+        error?.message?.includes('Invalid secondary mobile number') ||
         error?.message?.includes('Latitude') ||
         error?.message?.includes('longitude') ||
         error?.message?.includes('bhk_type')
@@ -853,6 +857,10 @@ class PropertyController {
       if (
         error?.message?.includes('Missing required field') ||
         error?.message?.includes('Invalid') ||
+        error?.message?.includes('room_types') ||
+        error?.message?.includes('meals_available') ||
+        error?.message?.includes('Invalid mobile number') ||
+        error?.message?.includes('Invalid secondary mobile number') ||
         error?.message?.includes('Latitude') ||
         error?.message?.includes('longitude') ||
         error?.message?.includes('bhk_type')

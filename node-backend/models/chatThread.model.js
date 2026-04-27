@@ -4,7 +4,11 @@ const ChatThread = {
   async getPropertyOwner(propertyId) {
     return new Promise((resolve, reject) => {
       const sql = `
-        SELECT p.property_id, p.owner_id
+        SELECT
+          p.property_id,
+          p.owner_id,
+          p.chat_owner_user_id,
+          COALESCE(p.chat_owner_user_id, p.owner_id) AS effective_owner_user_id
         FROM properties p
         WHERE p.property_id = ? AND p.status = 'active'
         LIMIT 1
