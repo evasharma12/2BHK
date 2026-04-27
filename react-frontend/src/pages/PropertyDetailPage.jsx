@@ -226,6 +226,33 @@ const PropertyDetailPage = () => {
     return labels[age] || '';
   };
 
+  const hasDisplayValue = (value) => {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value === 'string') return value.trim().length > 0;
+    return Boolean(value);
+  };
+
+  const formatAreaValue = (value) => {
+    if (!hasDisplayValue(value)) return '';
+    return `${value} sq ft`;
+  };
+
+  const formatFurnishingLabel = (value) => {
+    const labels = {
+      'fully-furnished': 'Fully Furnished',
+      'semi-furnished': 'Semi Furnished',
+      'unfurnished': 'Unfurnished',
+    };
+    return labels[value] || '';
+  };
+
+  const formatFloorValue = (floorNumber, totalFloors) => {
+    if (!hasDisplayValue(floorNumber) || !hasDisplayValue(totalFloors)) return '';
+    const floorLabel = Number(floorNumber) === 0 ? 'Ground' : floorNumber;
+    return `${floorLabel} of ${totalFloors}`;
+  };
+
   const propertyMapEmbedUrl = useMemo(() => {
     if (!property) return '';
     const hasCoordinates =
@@ -242,6 +269,17 @@ const PropertyDetailPage = () => {
     if (!query) return '';
     return `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=16&output=embed`;
   }, [property]);
+
+  const bhkLabel = getBhkLabel(property?.bhk);
+  const builtUpAreaLabel = formatAreaValue(property?.builtUpArea);
+  const carpetAreaLabel = formatAreaValue(property?.carpetArea);
+  const furnishingLabel = formatFurnishingLabel(property?.furnishing);
+  const floorLabel = formatFloorValue(property?.floorNumber, property?.totalFloors);
+  const propertyAgeLabel = getPropertyAgeLabel(property?.propertyAge);
+  const facingLabel = hasDisplayValue(property?.facing)
+    ? property.facing.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-')
+    : '';
+  const propertyTypeLabel = getPropertyTypeLabel(property?.propertyType);
 
   const handleSaveClick = async () => {
     if (!user?.user_id) {
@@ -457,67 +495,72 @@ const PropertyDetailPage = () => {
             <section className="detail-section">
               <h2 className="section-title">Overview</h2>
               <div className="overview-grid">
-                <div className="overview-item">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="7" height="7"/>
-                    <rect x="14" y="3" width="7" height="7"/>
-                    <rect x="14" y="14" width="7" height="7"/>
-                    <rect x="3" y="14" width="7" height="7"/>
-                  </svg>
-                  <div>
-                    <span className="overview-label">BHK</span>
-                    <span className="overview-value">{getBhkLabel(property.bhk)}</span>
+                {hasDisplayValue(bhkLabel) && (
+                  <div className="overview-item">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="3" width="7" height="7"/>
+                      <rect x="14" y="3" width="7" height="7"/>
+                      <rect x="14" y="14" width="7" height="7"/>
+                      <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    <div>
+                      <span className="overview-label">BHK</span>
+                      <span className="overview-value">{bhkLabel}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="overview-item">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-                  </svg>
-                  <div>
-                    <span className="overview-label">Built-up Area</span>
-                    <span className="overview-value">{property.builtUpArea} sq ft</span>
+                {hasDisplayValue(builtUpAreaLabel) && (
+                  <div className="overview-item">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                    </svg>
+                    <div>
+                      <span className="overview-label">Built-up Area</span>
+                      <span className="overview-value">{builtUpAreaLabel}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="overview-item">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-                    <polyline points="9 22 9 12 15 12 15 22"/>
-                  </svg>
-                  <div>
-                    <span className="overview-label">Carpet Area</span>
-                    <span className="overview-value">{property.carpetArea} sq ft</span>
+                {hasDisplayValue(carpetAreaLabel) && (
+                  <div className="overview-item">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                      <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <div>
+                      <span className="overview-label">Carpet Area</span>
+                      <span className="overview-value">{carpetAreaLabel}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="overview-item">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M20 9v11a2 2 0 01-2 2H6a2 2 0 01-2-2V9"/>
-                    <path d="M9 22V12h6v10M2 10.6L12 2l10 8.6"/>
-                  </svg>
-                  <div>
-                    <span className="overview-label">Furnishing</span>
-                    <span className="overview-value">
-                      {property.furnishing === 'fully-furnished' ? 'Fully Furnished' :
-                       property.furnishing === 'semi-furnished' ? 'Semi Furnished' : 'Unfurnished'}
-                    </span>
+                {hasDisplayValue(furnishingLabel) && (
+                  <div className="overview-item">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20 9v11a2 2 0 01-2 2H6a2 2 0 01-2-2V9"/>
+                      <path d="M9 22V12h6v10M2 10.6L12 2l10 8.6"/>
+                    </svg>
+                    <div>
+                      <span className="overview-label">Furnishing</span>
+                      <span className="overview-value">{furnishingLabel}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="overview-item">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-                  </svg>
-                  <div>
-                    <span className="overview-label">Floor</span>
-                    <span className="overview-value">
-                      {property.floorNumber === 0 ? 'Ground' : property.floorNumber} of {property.totalFloors}
-                    </span>
+                {hasDisplayValue(floorLabel) && (
+                  <div className="overview-item">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                    </svg>
+                    <div>
+                      <span className="overview-label">Floor</span>
+                      <span className="overview-value">{floorLabel}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {getPropertyAgeLabel(property.propertyAge) && (
+                {hasDisplayValue(propertyAgeLabel) && (
                   <div className="overview-item">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="10"/>
@@ -525,12 +568,12 @@ const PropertyDetailPage = () => {
                     </svg>
                     <div>
                       <span className="overview-label">Property Age</span>
-                      <span className="overview-value">{getPropertyAgeLabel(property.propertyAge)}</span>
+                      <span className="overview-value">{propertyAgeLabel}</span>
                     </div>
                   </div>
                 )}
 
-                {property.facing && (
+                {hasDisplayValue(facingLabel) && (
                   <div className="overview-item">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="10"/>
@@ -538,23 +581,23 @@ const PropertyDetailPage = () => {
                     </svg>
                     <div>
                       <span className="overview-label">Facing</span>
-                      <span className="overview-value">
-                        {property.facing.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-')}
-                      </span>
+                      <span className="overview-value">{facingLabel}</span>
                     </div>
                   </div>
                 )}
 
-                <div className="overview-item">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                    <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
-                  </svg>
-                  <div>
-                    <span className="overview-label">Property Type</span>
-                    <span className="overview-value">{getPropertyTypeLabel(property.propertyType)}</span>
+                {hasDisplayValue(propertyTypeLabel) && (
+                  <div className="overview-item">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                      <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+                    </svg>
+                    <div>
+                      <span className="overview-label">Property Type</span>
+                      <span className="overview-value">{propertyTypeLabel}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {property.availableFrom && (
                   <div className="overview-item">
