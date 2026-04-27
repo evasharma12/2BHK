@@ -175,6 +175,7 @@ async function runLegacyAdminPhantomBackfill(connection) {
 // Create database schema
 async function createDatabaseSchema() {
   let connection;
+  const rolloutMigrationLogs = [];
 
   try {
     const targetDb = assertApplicationDatabaseName(dbConfig.database);
@@ -646,6 +647,9 @@ async function createDatabaseSchema() {
       !propertyTypeColumnType.includes("'pg'");
 
     if (hasDeprecatedPropertyTypesInEnum || missingAllowedPropertyTypeInEnum) {
+      rolloutMigrationLogs.push(
+        '[rollout-safety] properties.property_type enum update required; validating deprecated values before ALTER'
+      );
       const [deprecatedTypeRows] = await connection.execute(
         `
         SELECT property_type, COUNT(*) AS total
@@ -659,6 +663,9 @@ async function createDatabaseSchema() {
         const countsSummary = deprecatedTypeRows
           .map((row) => `${row.property_type}: ${row.total}`)
           .join(', ');
+        console.error(
+          `[rollout-safety] enum guard blocked migration; deprecated property_type rows found (${countsSummary})`
+        );
         throw new Error(
           `Cannot tighten properties.property_type enum; deprecated values exist (${countsSummary}). ` +
           'Migrate or delete these rows before startup.'
@@ -674,7 +681,13 @@ async function createDatabaseSchema() {
           'pg'
         ) NOT NULL
       `);
-      console.log('✓ Tightened properties.property_type enum to active values only');
+      rolloutMigrationLogs.push(
+        '[rollout-safety] Tightened properties.property_type enum to: apartment, independent-house, commercial, pg'
+      );
+    } else {
+      rolloutMigrationLogs.push(
+        '[rollout-safety] properties.property_type enum already matches active values; no ALTER needed'
+      );
     }
     const [typeSpecificDataColumnRows] = await connection.execute(
       `
@@ -692,6 +705,9 @@ async function createDatabaseSchema() {
         ALTER TABLE properties
         ADD COLUMN type_specific_data JSON NULL
       `);
+      rolloutMigrationLogs.push('[rollout-safety] Added properties.type_specific_data JSON NULL column');
+    } else {
+      rolloutMigrationLogs.push('[rollout-safety] properties.type_specific_data column already exists');
     }
 
     const [builtUpAreaNullabilityRows] = await connection.execute(
@@ -710,6 +726,9 @@ async function createDatabaseSchema() {
         ALTER TABLE properties
         MODIFY COLUMN built_up_area INT NULL
       `);
+      rolloutMigrationLogs.push('[rollout-safety] Relaxed properties.built_up_area to NULL');
+    } else {
+      rolloutMigrationLogs.push('[rollout-safety] properties.built_up_area already nullable');
     }
 
     const [carpetAreaNullabilityRows] = await connection.execute(
@@ -728,6 +747,9 @@ async function createDatabaseSchema() {
         ALTER TABLE properties
         MODIFY COLUMN carpet_area INT NULL
       `);
+      rolloutMigrationLogs.push('[rollout-safety] Relaxed properties.carpet_area to NULL');
+    } else {
+      rolloutMigrationLogs.push('[rollout-safety] properties.carpet_area already nullable');
     }
 
     const [furnishingNullabilityRows] = await connection.execute(
@@ -746,8 +768,12 @@ async function createDatabaseSchema() {
         ALTER TABLE properties
         MODIFY COLUMN furnishing ENUM('fully-furnished', 'semi-furnished', 'unfurnished') NULL
       `);
+      rolloutMigrationLogs.push('[rollout-safety] Relaxed properties.furnishing to NULL');
+    } else {
+      rolloutMigrationLogs.push('[rollout-safety] properties.furnishing already nullable');
     }
     console.log('✓ Ensured properties rental lifecycle and ownership columns/indexes exist');
+    console.log('[rollout-safety] PG dynamic-fields migration summary:\n- ' + rolloutMigrationLogs.join('\n- '));
 
     // --------------------------------------------
     // Rollout phase: optional legacy phantom-owner backfill

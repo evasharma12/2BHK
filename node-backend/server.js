@@ -286,9 +286,11 @@ async function startServer() {
     // Ensure DB exists + tables/columns (CREATE IF NOT EXISTS + migrations). Uses its own connection.
     // Cannot run DDL without connecting first; this runs before the pool test and before accepting HTTP traffic.
     if (process.env.SKIP_DB_SCHEMA_ON_START !== 'true') {
+      console.log('[startup] Running schema bootstrap + migration guards (createDatabaseSchema)');
       await createDatabaseSchema();
+      console.log('[startup] Schema bootstrap + migration guards completed successfully');
     } else {
-      console.warn('SKIP_DB_SCHEMA_ON_START=true: skipping createDatabaseSchema() at startup.');
+      console.warn('[startup] SKIP_DB_SCHEMA_ON_START=true: skipping createDatabaseSchema() and migration guards.');
     }
 
     const dbConnected = await testConnection();

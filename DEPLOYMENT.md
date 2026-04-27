@@ -95,6 +95,10 @@ For phantom-owner rollout, prefer this sequence:
 2. **Backfill dry-run:** set `PHANTOM_OWNER_BACKFILL_LEGACY=true` and `PHANTOM_OWNER_BACKFILL_DRY_RUN=true` to inspect impact safely.
 3. **Live backfill (optional):** rerun with `PHANTOM_OWNER_BACKFILL_LEGACY=true` and `PHANTOM_OWNER_BACKFILL_DRY_RUN=false` (optionally set `PHANTOM_OWNER_BACKFILL_LIMIT` for batching).
 
+PG dynamic-fields rollout verification checklist:
+
+- `documentation/Feature Plans/PG Dynamic Fields Rollout Smoke Test Checklist.md`
+
 Example dry-run:
 
 ```bash
